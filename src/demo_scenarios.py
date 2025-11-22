@@ -1,28 +1,36 @@
 # src/demo_scenarios.py
-from pathlib import Path
-from .financial_llm import FinancialLLM
-from .financial_kg import FinancialKG
-from .retriever import DataRetriever
-from .controller import LLMController
+
+from controller import FinancialController
+from financial_kg import FinancialKG
+
 
 def run_demo():
-    kg = FinancialKG()
-    kg.add_mock_data()
-    kg.save_turtle(Path("financial_kg.ttl"))
+    """
+    Run the end-to-end pipeline:
+      - Seed KG
+      - Ask a question about a client's transactions
+      - Ask for compliance explanation
+    """
 
-    retriever = DataRetriever(kg)
-    llm = FinancialLLM()
-    controller = LLMController(llm=llm, kg=kg, retriever=retriever)
+    # Build the controller (this also builds KG, retriever, LLM)
+    controller = FinancialController()
 
-    query = "Was the last transaction by client A compliant with KYC rules?"
-    entry = controller.handle_query(query)
+    # Seed symbolic memory
+    controller.kg.seed_demo_data()
 
-    print("User query:")
-    print(query)
-    print("\nFacts:")
-    print(entry.facts_text)
-    print("\nLLM response:")
-    print(entry.llm_response)
+    print("=== Demo: Client A transaction summary ===")
+    answer1 = controller.answer_client_transaction_question(
+        client_id="A",
+        user_question="Summarize Client A's recent transactions and highlight any risky ones."
+    )
+    print(answer1)
+    print()
+
+    print("=== Demo: Compliance explanation for T002 ===")
+    answer2 = controller.explain_transaction_compliance("T002")
+    print(answer2)
+    print()
+
 
 if __name__ == "__main__":
     run_demo()

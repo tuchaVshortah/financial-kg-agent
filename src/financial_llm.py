@@ -1,54 +1,98 @@
 # src/financial_llm.py
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
-from openai import OpenAI
-from .config import OPENAI_API_KEY
 
-@dataclass
-class LLMMessage:
-    role: str   # "system", "user", "assistant"
-    content: str
+import os
+import time
+from typing import Optional, Dict, Any
+
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 
 class FinancialLLM:
     """
-    Thin wrapper around ChatGPT for financial reasoning with KG grounding.
+    Wrapper for interacting with OpenAI's GPT-based models.
+    Provides:
+    - Standardized system prompt for financial reasoning
+    - Retry logic for robustness
+    - Optional structured (JSON) responses
     """
 
-    def __init__(self, model: str = "gpt-4.1-mini"):
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+    def __init__(
+        self,
+        model: str = "gpt-4o-mini",
+        temperature: float = 0.0,
+        max_retries: int = 3,
+        system_prompt: str = None
+    ):
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables.")
+
+        self.client = OpenAI(api_key=api_key)
         self.model = model
+        self.temperature = temperature
+        self.max_retries = max_retries
 
-    def chat(self, messages: List[LLMMessage]) -> str:
-        """
-        Send a list of messages to the model and return the assistant's reply text.
-        """
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[m.__dict__ for m in messages],
-            temperature=0.1,
+        self.system_prompt = (
+            system_prompt
+            or "You are a financial reasoning assistant. "
+               "You answer strictly based on provided facts or instructions. "
+               "If information is missing, state that it is not available."
         )
-        return response.choices[0].message.content.strip()
 
-    def ask_with_facts(self, user_query: str, facts: str) -> str:
+    def ask(
+        self,
+        user_message: str,
+        context_facts: Optional[str] = None,
+        json_mode: bool = False,
+        temperature: Optional[float] = None,
+    ) -> str:
         """
-        Helper: answer a user query given a textual description of KG facts.
+        Main method to send a prompt to ChatGPT.
+
+        Parameters
+        ----------
+        user_message : str
+            The user's query.
+        context_facts : Optional[str]
+            Facts injected from the knowledge graph.
+        json_mode : bool
+            If True, requests model to return structured JSON.
+        temperature : Optional[float]
+            Overrides default temperature.
+
+        Returns
+        -------
+        str : Model output
         """
-        messages = [
-            LLMMessage(
-                role="system",
-                content=(
-                    "You are a cautious financial AI agent. "
-                    "You MUST base your answer ONLY on the facts provided. "
-                    "If the facts are insufficient, say so explicitly."
-                ),
-            ),
-            LLMMessage(
-                role="user",
-                content=(
-                    f"User question:\n{user_query}\n\n"
-                    f"Relevant facts from the knowledge graph:\n{facts}\n\n"
-                    "Answer the question and explain your reasoning briefly."
-                ),
-            ),
-        ]
-        return self.chat(messages)
+
+        messages = [{"role": "system", "content": self.system_prompt}]
+
+        if context_facts:
+            messages.append({
+                "role": "system",
+                "content": f"Here are verified facts you MUST use:\n{context_facts}"
+            })
+
+        messages.append({"role": "user", "content": user_message})
+
+        # Retry mechanism
+        for attempt in range(self.max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    temperature=temperature if temperature is not None else self.temperature,
+                    response_format={"type": "json_object"} if json_mode else None,
+                    messages=messages,
+                )
+                return response.choices[0].message.content
+
+            except Exception as e:
+                if attempt == self.max_retries - 1:
+                    raise RuntimeError(f"LLM request failed after retries: {e}")
+                time.sleep(1.5)  # Back-off before retrying
+
+        return None  # Should not reach here

@@ -1,52 +1,111 @@
 # src/controller.py
-from dataclasses import dataclass, asdict
-from pathlib import Path
-import json
-from typing import Any, Dict
 
-from .financial_llm import FinancialLLM
-from .financial_kg import FinancialKG
-from .retriever import DataRetriever
+from __future__ import annotations
 
-@dataclass
-class TraceEntry:
-    user_query: str
-    facts_text: str
-    llm_response: str
+from typing import Optional
 
-class LLMController:
+from financial_kg import FinancialKG
+from financial_llm import FinancialLLM
+from retriever import FinancialRetriever
+
+
+class FinancialController:
     """
-    Orchestrates the flow:
-    user → retriever → KG → LLM → answer + trace log.
+    Simple orchestrator that connects:
+      - FinancialKG  (symbolic memory)
+      - FinancialRetriever (formats KG data as facts)
+      - FinancialLLM (reasoning + explanation)
+
+    Option A: a small, single-agent controller with a few
+    explicit workflows rather than a generic routing engine.
     """
 
     def __init__(
         self,
-        llm: FinancialLLM,
-        kg: FinancialKG,
-        retriever: DataRetriever,
-        trace_log_path: Path | None = None,
-    ):
-        self.llm = llm
-        self.kg = kg
-        self.retriever = retriever
-        self.trace_log_path = trace_log_path or Path("trace_log.jsonl")
+        kg: Optional[FinancialKG] = None,
+        retriever: Optional[FinancialRetriever] = None,
+        llm: Optional[FinancialLLM] = None,
+    ) -> None:
+        # Allow dependency injection, but provide sensible defaults
+        self.kg = kg or FinancialKG()
+        self.retriever = retriever or FinancialRetriever(self.kg)
+        self.llm = llm or FinancialLLM()
 
-    def handle_query(self, user_query: str) -> TraceEntry:
-        facts = self.retriever.retrieve_for_query(user_query)
-        facts_text = self.kg.format_facts_for_llm(facts)
+    # ------------------------------------------------------------------ Workflows
 
-        llm_response = self.llm.ask_with_facts(user_query, facts_text)
+    def answer_client_transaction_question(
+        self,
+        client_id: str,
+        user_question: str,
+    ) -> str:
+        """
+        High-level workflow:
+          1. Get symbolic facts (transactions) for a given client.
+          2. Feed them as context to the LLM.
+          3. Return the model's answer.
 
-        entry = TraceEntry(
-            user_query=user_query,
-            facts_text=facts_text,
-            llm_response=llm_response,
+        Example question: "Is client A engaged in suspicious activity?"
+        """
+        facts = self.retriever.get_client_transactions_facts(client_id)
+        return self.llm.ask(
+            user_message=user_question,
+            context_facts=facts,
         )
-        self._append_trace(entry)
-        return entry
 
-    def _append_trace(self, entry: TraceEntry) -> None:
-        record: Dict[str, Any] = asdict(entry)
-        with self.trace_log_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    def explain_transaction_compliance(
+        self,
+        tx_id: str,
+        user_question: Optional[str] = None,
+    ) -> str:
+        """
+        High-level workflow:
+          1. Get compliance-related facts for a single transaction.
+          2. Ask the LLM to explain whether it is compliant and why.
+
+        If user_question is not provided, a default one is used.
+        """
+        facts = self.retriever.get_transaction_compliance_facts(tx_id)
+
+        question = (
+            user_question
+            or f"Based on the facts, explain whether transaction {tx_id} "
+               f"is compliant or non-compliant, and why."
+        )
+
+        return self.llm.ask(
+            user_message=question,
+            context_facts=facts,
+        )
+
+    # ------------------------------------------------------------------ Demo helper
+
+    def run_demo(self) -> None:
+        """
+        Very small, deterministic demo:
+          - Seeds the KG
+          - Asks about client A
+          - Asks for an explanation of a specific transaction
+        """
+        # Seed symbolic memory
+        self.kg.seed_demo_data()
+
+        print("=== Demo: Client A transaction overview ===")
+        answer1 = self.answer_client_transaction_question(
+            client_id="A",
+            user_question="Summarize Client A's recent transactions and highlight any that might be risky.",
+        )
+        print(answer1)
+        print()
+
+        print("=== Demo: Compliance explanation for T002 ===")
+        answer2 = self.explain_transaction_compliance(tx_id="T002")
+        print(answer2)
+
+
+# --------------------------------------------------------------------------- #
+# Manual run
+# --------------------------------------------------------------------------- #
+
+if __name__ == "__main__":
+    controller = FinancialController()
+    controller.run_demo()
