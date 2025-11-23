@@ -1,10 +1,11 @@
 # Step A — Implement core OOP classes
 
-- FinancialLLM
-- FinancialKG
-- DataRetriever
-- LLMController
-- These will form the backbone of your agent.
+| Component     | Status |
+| ------------- | ------ |
+| FinancialLLM  | ✅     |
+| FinancialKG   | ✅     |
+| DataRetriever | ✅     |
+| LLMController | ✅     |
 
 # Step B — Implement KG builder
 
@@ -29,3 +30,12 @@
 - Build KG
 - Ask agent a few queries
 - Show evaluation examples
+
+## Todos
+
+- Fix/improve LLM reasoning (strongly recommended next)
+- Add more KG data & rule definitions
+- Extend retriever with more functions
+- Add JSON evaluation output
+- Add a memory system (RAP-lite buffer)
+- Something else
