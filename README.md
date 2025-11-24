@@ -37,7 +37,7 @@
 
 ## Todos
 
-- Fix/improve LLM reasoning (strongly recommended next)
+- Fix/improve LLM reasoning
 - Add more KG data & rule definitions
 - Extend retriever with more functions
 - Add JSON evaluation output
