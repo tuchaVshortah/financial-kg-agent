@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable, List, Optional, Dict, Any
+import csv  # <-- NEW
 
 from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, RDFS, XSD
-
 
 # --- Domain dataclasses -----------------------------------------------------
 
@@ -239,6 +239,103 @@ class FinancialKG:
             "tx_uri": str(t_uri),
             "rules": rules,
         }
+
+    # ---------------------------------------------------------- CSV data loader
+
+    def load_from_csv(self, data_dir: Path) -> None:
+        """
+        Load clients, accounts, and transactions from CSV files in `data_dir`.
+
+        Expected files (all optional, but processed in this order if present):
+          - clients.csv
+          - accounts.csv
+          - transactions.csv
+
+        Each file is expected to have a header row. See repository docs or
+        README for column definitions.
+        """
+        data_dir = Path(data_dir)
+
+        clients_path = data_dir / "clients.csv"
+        accounts_path = data_dir / "accounts.csv"
+        tx_path = data_dir / "transactions.csv"
+
+        # --- Load clients -----------------------------------------------------
+        if clients_path.exists():
+            with clients_path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    client = Client(
+                        client_id=row["client_id"],
+                        name=row.get("name") or None,
+                        risk_level=row.get("risk_level") or None,
+                    )
+                    self.add_client(client)
+
+        # --- Load accounts ----------------------------------------------------
+        if accounts_path.exists():
+            with accounts_path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    account = Account(
+                        account_id=row["account_id"],
+                        client_id=row["client_id"],
+                        account_type=row.get("account_type") or None,
+                        status=row.get("status") or None,
+                    )
+                    self.add_account(account)
+
+        # --- Load transactions -----------------------------------------------
+        if tx_path.exists():
+            with tx_path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    amount = self._parse_decimal(row.get("amount"))
+                    is_compliant = self._parse_bool(row.get("is_compliant"))
+                    rule_ids = self._parse_rule_ids(row.get("rule_ids"))
+
+                    tx = Transaction(
+                        tx_id=row["tx_id"],
+                        account_id=row["account_id"],
+                        amount=amount if amount is not None else Decimal("0.0"),
+                        currency=row.get("currency") or "USD",
+                        date=row.get("date") or "1970-01-01",
+                        status=row.get("status") or None,
+                        is_compliant=is_compliant,
+                        rule_ids=rule_ids,
+                    )
+                    self.add_transaction(tx)
+
+    # ---------------------------------------------------------- CSV helpers
+
+    @staticmethod
+    def _parse_decimal(value: Optional[str]) -> Optional[Decimal]:
+        if value is None or value == "":
+            return None
+        try:
+            return Decimal(value)
+        except (InvalidOperation, ValueError):
+            return None
+
+    @staticmethod
+    def _parse_bool(value: Optional[str]) -> Optional[bool]:
+        if value is None:
+            return None
+        v = value.strip().lower()
+        if v in {"true", "1", "yes", "y"}:
+            return True
+        if v in {"false", "0", "no", "n"}:
+            return False
+        return None
+
+    @staticmethod
+    def _parse_rule_ids(value: Optional[str]) -> Optional[List[str]]:
+        if not value:
+            return None
+        # Expect comma-separated rule IDs, e.g. "KYC,AML_THRESHOLD"
+        parts = [p.strip() for p in value.split(",") if p.strip()]
+        return parts or None
+
 
     # -------------------------------------------------------------- Serialization
 
