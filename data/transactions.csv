@@ -1,0 +1,4 @@
+tx_id,account_id,amount,currency,date,status,is_compliant,rule_ids
+T001,A1,9500.00,USD,2024-05-10,completed,true,KYC
+T002,A1,15000.00,USD,2024-05-12,completed,false,"KYC,AML_THRESHOLD"
+T003,A2,500.00,EUR,2024-05-15,completed,true,KYC
