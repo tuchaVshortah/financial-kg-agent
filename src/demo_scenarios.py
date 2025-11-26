@@ -4,192 +4,144 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional
 
+from financial_kg import FinancialKG
+from financial_llm import FinancialLLM
+from retriever import FinancialRetriever
 from controller import FinancialController
 
 
-def _build_controller(seed_demo: bool = True) -> FinancialController:
+def build_controller(use_csv: bool, data_dir: Optional[Path]) -> FinancialController:
     """
-    Create a FinancialController and optionally seed the KG with demo data.
+    Build a controller with either code-seeded demo data or CSV-seeded data.
     """
-    controller = FinancialController()
-    if seed_demo:
-        controller.kg.seed_demo_data()
-    return controller
+    kg = FinancialKG()
+
+    if use_csv:
+        # Default to ../data relative to this file if not provided
+        if data_dir is None:
+            data_dir = Path(__file__).resolve().parent.parent / "data"
+        kg.load_from_csv(data_dir)
+    else:
+        kg.seed_demo_data()
+
+    retriever = FinancialRetriever(kg)
+    llm = FinancialLLM()
+    return FinancialController(kg=kg, retriever=retriever, llm=llm)
 
 
-def _log_entry(
-    log_path: Optional[Path],
-    entry: Dict[str, Any],
-) -> None:
-    """
-    Append a single JSON entry to a .jsonl log file (if log_path is provided).
-    """
-    if not log_path:
+def log_entry(log_file: Optional[Path], entry: dict) -> None:
+    if not log_file:
         return
-
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-
-
-# --------------------------------------------------------------------------- #
-# Demo scenarios
-# --------------------------------------------------------------------------- #
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        **entry,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    with log_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
 
 
-def scenario_summary(
-    controller: FinancialController,
-    client_id: str,
-    log_path: Optional[Path] = None,
-) -> None:
-    """
-    Scenario 1:
-      - Summarize recent transactions for a client.
-      - Highlight any risky / notable ones.
-    """
-    question = (
-        f"Summarize client {client_id}'s recent transactions and highlight any that "
-        f"might be risky or unusual."
-    )
-
-    # Get facts explicitly for the log & for transparency
-    facts_text = controller.retriever.get_client_transactions_facts(client_id)
-    response = controller.llm.ask(
-        user_message=question,
-        context_facts=facts_text,
-    )
-
+def run_summary_scenario(controller: FinancialController, client_id: str, log_file: Optional[Path]) -> None:
     print("=== Scenario: Client transaction summary ===")
     print(f"Client ID: {client_id}\n")
+
+    facts = controller.retriever.get_client_transactions_facts(client_id)
     print("Facts passed to the LLM:")
-    print(facts_text)
-    print("\nLLM response:")
+    print(facts)
+    print()
+
+    response = controller.answer_client_transaction_question(
+        client_id=client_id,
+        user_question="Summarize this client's recent transactions and highlight any that might be risky.",
+    )
+    print("LLM response:")
     print(response)
 
-    entry = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "scenario": "summary",
-        "client_id": client_id,
-        "question": question,
-        "facts": facts_text,
-        "llm_response": response,
-    }
-    _log_entry(log_path, entry)
-
-
-def scenario_compliance(
-    controller: FinancialController,
-    tx_id: str,
-    log_path: Optional[Path] = None,
-) -> None:
-    """
-    Scenario 2:
-      - Explain whether a given transaction is compliant and why.
-    """
-    default_question = (
-        f"Based on the facts, explain whether transaction {tx_id} is compliant "
-        f"or non-compliant, and why. Be explicit about the rules."
+    log_entry(
+        log_file,
+        {
+            "scenario": "summary",
+            "client_id": client_id,
+            "facts": facts,
+            "llm_response": response,
+        },
     )
 
-    facts_text = controller.retriever.get_transaction_compliance_facts(tx_id)
-    response = controller.llm.ask(
-        user_message=default_question,
-        context_facts=facts_text,
-    )
 
+def run_compliance_scenario(controller: FinancialController, tx_id: str, log_file: Optional[Path]) -> None:
     print("=== Scenario: Transaction compliance explanation ===")
     print(f"Transaction ID: {tx_id}\n")
+
+    facts = controller.retriever.get_transaction_compliance_facts(tx_id)
     print("Facts passed to the LLM:")
-    print(facts_text)
-    print("\nLLM response:")
+    print(facts)
+    print()
+
+    response = controller.explain_transaction_compliance(tx_id=tx_id)
+    print("LLM response:")
     print(response)
 
-    entry = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "scenario": "compliance",
-        "tx_id": tx_id,
-        "question": default_question,
-        "facts": facts_text,
-        "llm_response": response,
-    }
-    _log_entry(log_path, entry)
-
-
-def scenario_raw_facts(
-    controller: FinancialController,
-    client_id: str,
-    log_path: Optional[Path] = None,
-) -> None:
-    """
-    Scenario 3:
-      - Print the raw KG facts for a client (no LLM).
-      - Useful to show how symbolic memory looks on its own.
-    """
-    facts_text = controller.retriever.get_client_transactions_facts(client_id)
-
-    print("=== Scenario: Raw KG facts for client ===")
-    print(f"Client ID: {client_id}\n")
-    print(facts_text)
-
-    entry = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "scenario": "raw-facts",
-        "client_id": client_id,
-        "facts": facts_text,
-        "llm_response": None,
-    }
-    _log_entry(log_path, entry)
-
-
-# --------------------------------------------------------------------------- #
-# CLI entrypoint
-# --------------------------------------------------------------------------- #
+    log_entry(
+        log_file,
+        {
+            "scenario": "compliance",
+            "tx_id": tx_id,
+            "facts": facts,
+            "llm_response": response,
+        },
+    )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Demo scenarios for the financial KG + LLM agent."
-    )
+    parser = argparse.ArgumentParser(description="Financial KG + LLM demo scenarios")
     parser.add_argument(
         "--scenario",
-        choices=["summary", "compliance", "raw-facts"],
-        default="summary",
-        help="Which scenario to run.",
+        choices=["summary", "compliance", "all"],
+        default="all",
+        help="Which demo scenario to run",
     )
     parser.add_argument(
         "--client-id",
         default="A",
-        help="Client ID to use (for summary/raw-facts scenarios). Default: A",
+        help="Client ID to use for summary scenario",
     )
     parser.add_argument(
         "--tx-id",
         default="T002",
-        help="Transaction ID to use (for compliance scenario). Default: T002",
+        help="Transaction ID to use for compliance scenario",
     )
     parser.add_argument(
         "--log-file",
-        type=str,
+        type=Path,
         default=None,
-        help="Optional path to a JSONL log file (e.g., logs/demo_runs.jsonl).",
+        help="Optional path to JSONL log file (e.g. logs/demo_runs.jsonl)",
+    )
+    parser.add_argument(
+        "--use-csv",
+        action="store_true",
+        help="Load KG demo data from CSV files in ../data instead of code-seeded demo data",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=None,
+        help="Override the default ../data path for CSV loading",
     )
 
     args = parser.parse_args()
-    log_path = Path(args.log_file) if args.log_file else None
 
-    controller = _build_controller(seed_demo=True)
+    controller = build_controller(use_csv=args.use_csv, data_dir=args.data_dir)
 
-    if args.scenario == "summary":
-        scenario_summary(controller, client_id=args.client_id, log_path=log_path)
-    elif args.scenario == "compliance":
-        scenario_compliance(controller, tx_id=args.tx_id, log_path=log_path)
-    elif args.scenario == "raw-facts":
-        scenario_raw_facts(controller, client_id=args.client_id, log_path=log_path)
-    else:
-        raise ValueError(f"Unknown scenario: {args.scenario}")
+    if args.scenario in ("summary", "all"):
+        run_summary_scenario(controller, client_id=args.client_id, log_file=args.log_file)
+
+    if args.scenario in ("compliance", "all"):
+        print()
+        run_compliance_scenario(controller, tx_id=args.tx_id, log_file=args.log_file)
 
 
 if __name__ == "__main__":
