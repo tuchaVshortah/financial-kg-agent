@@ -10,6 +10,7 @@ from typing import Optional
 
 from financial_kg import FinancialKG
 from financial_llm import FinancialLLM
+from log_utils import LogReader
 from retriever import FinancialRetriever
 from controller import FinancialController
 
@@ -142,6 +143,11 @@ def main() -> None:
     if args.scenario in ("compliance", "all"):
         print()
         run_compliance_scenario(controller, tx_id=args.tx_id, log_file=args.log_file)
+
+    if args.log_file:
+        reader = LogReader(Path(args.log_file))
+        print("\n--- Log summary (for convenience) ---")
+        reader.print_summary()
 
 
 if __name__ == "__main__":
