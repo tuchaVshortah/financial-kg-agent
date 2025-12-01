@@ -240,6 +240,39 @@ class FinancialKG:
             "rules": rules,
         }
 
+    def get_transaction_compliance_label(self, tx_id: str) -> Optional[bool]:
+        """
+        Return the ground-truth compliance label for a transaction based on the KG.
+
+        Returns
+        -------
+        Optional[bool]
+            True if compliant, False if non-compliant, or None if not specified.
+        """
+        t_uri = self.tx_uri(tx_id)
+        query = f"""
+        PREFIX ex: <{self.base_iri}>
+        SELECT ?isCompliant
+        WHERE {{
+            <{t_uri}> ex:isCompliant ?isCompliant .
+        }}
+        """
+        results = list(self.graph.query(query))
+        if not results:
+            return None
+
+        # We assume at most one isCompliant triple
+        row = results[0]
+        # RDFLib already maps xsd:boolean to Python bool in most cases,
+        # but we guard with a simple cast fallback.
+        val = row.isCompliant.toPython() if hasattr(row.isCompliant, "toPython") else row.isCompliant
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            return val.lower() == "true"
+        return None
+
+
     # ---------------------------------------------------------- CSV data loader
 
     def load_from_csv(self, data_dir: Path) -> None:
