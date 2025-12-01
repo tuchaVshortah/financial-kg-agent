@@ -3,7 +3,7 @@
 import os
 import time
 import json
-from typing import Optional, Dict, Any, List, Literal
+from typing import Optional, Dict, Any, List, Literal, Tuple
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -254,3 +254,64 @@ class FinancialLLM:
             parsed["uncertainty"] = "medium"
 
         return parsed
+
+    def ask_compliance_json(
+        self,
+        user_message: str,
+        context_facts: str,
+    ) -> Tuple[Optional[Dict[str, Any]], str]:
+        """
+        Ask the model for a compliance decision in structured JSON form.
+
+        The model is instructed to return:
+        {
+          "is_compliant": true/false,
+          "explanation": "..."
+        }
+
+        Returns
+        -------
+        (parsed_json, raw_response)
+        """
+        prompt = (
+            "You are a financial compliance assistant.\n"
+            "You will be given verified facts about a single transaction.\n"
+            "Based ONLY on these facts, decide if the transaction is compliant.\n\n"
+            "Respond in strictly valid JSON with the following fields:\n"
+            "{\n"
+            '  "is_compliant": true or false,\n'
+            '  "explanation": "short natural language justification"\n'
+            "}\n"
+            "Do not include any additional keys or text outside the JSON object."
+        )
+
+        messages = [
+            {"role": "system", "content": prompt},
+            {
+                "role": "system",
+                "content": f"Facts:\n{context_facts}",
+            },
+            {"role": "user", "content": user_message},
+        ]
+
+        # Retry loop, similar to ask()
+        for attempt in range(self.max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    temperature=0.0,
+                    response_format={"type": "json_object"},
+                    messages=messages,
+                )
+                raw = response.choices[0].message.content
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    parsed = None
+                return parsed, raw
+            except Exception as e:
+                if attempt == self.max_retries - 1:
+                    raise RuntimeError(f"LLM compliance JSON request failed: {e}")
+                time.sleep(1.5)
+
+        return None, ""
