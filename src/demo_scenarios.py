@@ -96,12 +96,51 @@ def run_compliance_scenario(controller: FinancialController, tx_id: str, log_fil
         },
     )
 
+def run_eval_scenario(controller: FinancialController, log_file: Optional[Path] = None) -> None:
+    """
+    Run a small evaluation over a handful of transactions
+    and optionally append results to the log file.
+    """
+    tx_ids = ["T001", "T002", "T003"]  # for now, our demo IDs
+
+    print("=== Scenario: JSON compliance evaluation ===")
+    results = []
+    for tx_id in tx_ids:
+        res = controller.evaluate_transaction_compliance_json(tx_id)
+        results.append(res)
+        print(f"- Transaction {tx_id}:")
+        print(f"  Ground truth : {res['ground_truth']}")
+        print(f"  Model label  : {res['model_label']}")
+        print(f"  Correct      : {res['correct']}")
+        print(f"  Explanation  : {res['explanation']}\n")
+
+    # Optional: append each result to the log file
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        from datetime import datetime, timezone
+        import json as _json
+
+        with log_file.open("a", encoding="utf-8") as f:
+            for res in results:
+                entry = {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "scenario": "eval",
+                    "tx_id": res["tx_id"],
+                    "ground_truth": res["ground_truth"],
+                    "model_label": res["model_label"],
+                    "correct": res["correct"],
+                    "explanation": res["explanation"],
+                    "raw_response": res["raw_response"],
+                }
+                f.write(_json.dumps(entry) + "\n")
+
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Financial KG + LLM demo scenarios")
     parser.add_argument(
         "--scenario",
-        choices=["summary", "compliance", "all"],
+        choices=["summary", "compliance", "all", "eval"],
         default="all",
         help="Which demo scenario to run",
     )
@@ -143,6 +182,9 @@ def main() -> None:
     if args.scenario in ("compliance", "all"):
         print()
         run_compliance_scenario(controller, tx_id=args.tx_id, log_file=args.log_file)
+
+    if args.scenario in ("eval", "all"):
+        run_eval_scenario(controller, log_file=args.log_file)
 
     if args.log_file:
         reader = LogReader(Path(args.log_file))
