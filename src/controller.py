@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Dict, Any
+import json
 
 from financial_kg import FinancialKG
 from financial_llm import FinancialLLM
@@ -76,6 +77,49 @@ class FinancialController:
             user_message=question,
             context_facts=facts,
         )
+    
+    def evaluate_transaction_compliance_json(self, tx_id: str) -> Dict[str, Any]:
+        """
+        Evaluation helper:
+          - Retrieves KG facts about a transaction's compliance.
+          - Asks the LLM for a JSON decision.
+          - Compares model decision vs. KG ground truth.
+
+        Returns a dict summarizing the evaluation.
+        """
+        facts = self.retriever.get_transaction_compliance_facts(tx_id)
+        ground_truth = self.kg.get_transaction_compliance_label(tx_id)
+
+        user_msg = (
+            f"Decide whether transaction {tx_id} is compliant based on the facts. "
+            "Remember: respond ONLY with the requested JSON fields."
+        )
+
+        parsed, raw = self.llm.ask_compliance_json(
+            user_message=user_msg,
+            context_facts=facts,
+        )
+
+        model_label = None
+        explanation = None
+        if isinstance(parsed, dict):
+            model_label = parsed.get("is_compliant")
+            explanation = parsed.get("explanation")
+
+        correct = None
+        if ground_truth is not None and isinstance(model_label, bool):
+            correct = (ground_truth == model_label)
+
+        return {
+            "tx_id": tx_id,
+            "facts": facts,
+            "ground_truth": ground_truth,
+            "model_label": model_label,
+            "correct": correct,
+            "explanation": explanation,
+            "raw_response": raw,
+        }
+
 
     # ------------------------------------------------------------------ Demo helper
 
