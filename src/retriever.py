@@ -73,41 +73,48 @@ class FinancialRetriever:
         return [self._tx_dict_to_fact(t) for t in raw]
 
     def get_client_transactions_facts(
-        self, client_id: str
+        self,
+        client_id: str,
+        include_compliance_flag: bool = False,
     ) -> str:
         """
-        Return a human-readable summary of transactions for a client,
-        suitable for injection into the LLM as contextual facts.
+        Returns a textual summary of all transactions for a given client.
+
+        If include_compliance_flag is True, the textual summary will contain
+        the `compliance: true / false / unknown` field for each transaction.
+        Otherwise, that field is omitted, and the LLM must infer risk/compliance
+        only from amounts, dates, etc.
         """
-        tx_facts = self.get_client_transactions(client_id)
+        txs = self.kg.get_transactions_for_client(client_id)
 
-        if not tx_facts:
-            return f"No transactions found for client '{client_id}'."
+        if not txs:
+            return f"No known transactions for client '{client_id}'."
 
-        lines: List[str] = []
-        lines.append(f"Known transactions for client '{client_id}':")
+        lines = [f"Known transactions for client '{client_id}':"]
+        for tx in txs:
+            tx_id = tx["tx_uri"].split("#")[-1]
+            amount = tx.get("amount")
+            currency = tx.get("currency")
+            date = tx.get("date")
+            status = tx.get("status") or "unknown"
 
-        for tx in tx_facts:
-            # Build a compact descriptive sentence
-            parts = []
+            # Ground truth, but *optionally* shown to the LLM
+            is_compliant = tx.get("is_compliant")
+            if is_compliant is None:
+                compliance_str = "unknown"
+            else:
+                compliance_str = "true" if is_compliant else "false"
 
-            if tx.date:
-                parts.append(f"on {tx.date}")
-            parts.append(f"transaction {tx.tx_id}")
+            # Build the base line
+            base = (
+                f"- on {date}, transaction {tx_id}, "
+                f"of {amount:.2f} {currency}, status: {status}"
+            )
 
-            if tx.amount is not None and tx.currency:
-                parts.append(f"of {tx.amount:.2f} {tx.currency}")
+            if include_compliance_flag:
+                base += f", compliance: {compliance_str}"
 
-            if tx.status:
-                parts.append(f"status: {tx.status}")
-
-            if tx.is_compliant is not None:
-                parts.append(
-                    f"compliance: {'compliant' if tx.is_compliant else 'non-compliant'}"
-                )
-
-            line = "- " + ", ".join(parts)
-            lines.append(line)
+            lines.append(base)
 
         return "\n".join(lines)
 

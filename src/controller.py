@@ -38,16 +38,22 @@ class FinancialController:
         self,
         client_id: str,
         user_question: str,
+        include_compliance_flag: bool = False,
     ) -> str:
         """
         High-level workflow:
           1. Get symbolic facts (transactions) for a given client.
-          2. Feed them as context to the LLM.
-          3. Return the model's answer.
+          2. Optionally include per-transaction compliance=true/false/unknown.
+          3. Feed them as context to the LLM.
 
-        Example question: "Is client A engaged in suspicious activity?"
+        include_compliance_flag=False  → more realistic / harder setting.
+        include_compliance_flag=True   → ablation / upper-bound style setting.
         """
-        facts = self.retriever.get_client_transactions_facts(client_id)
+        facts = self.retriever.get_client_transactions_facts(
+            client_id=client_id,
+            include_compliance_flag=include_compliance_flag,
+        )
+
         return self.llm.ask(
             user_message=user_question,
             context_facts=facts,
