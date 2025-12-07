@@ -118,38 +118,32 @@ class FinancialRetriever:
 
         return "\n".join(lines)
 
-    def get_transaction_compliance_facts(
-        self, tx_id: str
-    ) -> str:
+    def get_transaction_compliance_facts(self, tx_id: str) -> str:
         """
-        Return a human-readable explanation of which rules a transaction
-        is compliant with or violates, based on KG content.
+        Return a human-readable description of which rules a transaction
+        is compliant with or violates, based on KG relations.
         """
-        data = self.kg.explain_transaction_compliance(tx_id)
-        rules = data.get("rules", [])
+        info = self.kg.explain_transaction_compliance(tx_id)
+        rules = info.get("rules", [])
 
+        lines = [f"Compliance-related facts for transaction '{tx_id}':"]
         if not rules:
-            return (
-                f"No explicit compliance or violation rules were found "
-                f"for transaction '{tx_id}'."
-            )
+            lines.append(f"- No explicit compliance or violation rules are recorded for transaction {tx_id}.")
+        else:
+            for r in rules:
+                rule_uri = r.get("rule_uri")
+                relation = r.get("relation")  # "compliantWith" or "violatesRule"
+                rule_id = rule_uri.split("#")[-1] if rule_uri else "UNKNOWN_RULE"
 
-        lines: List[str] = [f"Compliance-related facts for transaction '{tx_id}':"]
-        for r in rules:
-            rule_short = self._shorten_uri(r["rule_uri"])
-            relation = r["relation"]
-
-            if relation == "compliantWith":
-                lines.append(f"- Transaction {tx_id} is compliant with rule {rule_short}.")
-            elif relation == "violatesRule":
-                lines.append(f"- Transaction {tx_id} violates rule {rule_short}.")
-            else:
-                lines.append(
-                    f"- Transaction {tx_id} has relation '{relation}' with rule {rule_short}."
-                )
+                if relation == "compliantWith":
+                    lines.append(f"- Transaction {tx_id} is compliant with rule {rule_id}.")
+                elif relation == "violatesRule":
+                    lines.append(f"- Transaction {tx_id} violates rule {rule_id}.")
+                else:
+                    lines.append(f"- Transaction {tx_id} is related to rule {rule_id} (relation: {relation}).")
 
         return "\n".join(lines)
-
+    
     def build_context_for_client_and_tx(
         self,
         client_id: str,

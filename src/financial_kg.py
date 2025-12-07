@@ -160,16 +160,20 @@ class FinancialKG:
             self.graph.set((t_uri, self.EX.status, Literal(tx.status)))
 
         if tx.is_compliant is not None:
-            # We could also encode this as a data property
             self.graph.set(
                 (t_uri, self.EX.isCompliant, Literal(tx.is_compliant, datatype=XSD.boolean))
             )
 
+        # Link to rules: compliant → isCompliantWith, non-compliant → violatesRule
         if tx.rule_ids:
             for rule_id in tx.rule_ids:
                 r_uri = self.rule_uri(rule_id)
                 self.graph.add((r_uri, RDF.type, self.EX.ComplianceRule))
-                self.graph.add((t_uri, self.EX.isCompliantWith, r_uri))
+
+                if tx.is_compliant is True:
+                    self.graph.add((t_uri, self.EX.isCompliantWith, r_uri))
+                elif tx.is_compliant is False:
+                    self.graph.add((t_uri, self.EX.violatesRule, r_uri))
 
     # --------------------------------------------------------------- Query helpers
 
