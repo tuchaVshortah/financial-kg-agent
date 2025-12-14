@@ -182,6 +182,16 @@ class FinancialKG:
 
     # --------------------------------------------------------------- Query helpers
 
+    def list_transaction_ids(self) -> list[str]:
+        query = f"""
+        PREFIX ex: <{self.base_iri}>
+        SELECT ?tx WHERE {{ ?tx a ex:Transaction . }}
+        """
+        ids = []
+        for row in self.graph.query(query):
+            ids.append(str(row.tx).split("#")[-1].replace("Transaction_", ""))
+        return sorted(set(ids))
+
     def get_transactions_for_client(self, client_id: str) -> List[Dict[str, Any]]:
         """
         Return a list of transaction dicts for a given client_id.
