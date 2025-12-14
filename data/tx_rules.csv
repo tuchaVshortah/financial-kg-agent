@@ -1,0 +1,5 @@
+tx_id,rule_id,relation
+T001,KYC,compliant
+T002,KYC,violates
+T002,AML_THRESHOLD,violates
+T003,KYC,compliant
