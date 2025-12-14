@@ -96,48 +96,63 @@ def run_compliance_scenario(controller: FinancialController, tx_id: str, log_fil
         },
     )
 
+
 def run_eval_scenario(controller: FinancialController, log_file: Optional[Path] = None) -> None:
-    """
-    Run a small evaluation over a handful of transactions
-    and optionally append results to the log file.
-    """
-    tx_ids = ["T001", "T002", "T003"]  # for now, our demo IDs
+    tx_ids = controller.kg.list_transaction_ids()
 
     print("=== Scenario: JSON compliance evaluation ===")
     results = []
     for tx_id in tx_ids:
         res = controller.evaluate_transaction_compliance_json(tx_id)
         results.append(res)
+
         print(f"- Transaction {tx_id}:")
         print(f"  Ground truth : {res['ground_truth']}")
         print(f"  Model label  : {res['model_label']}")
         print(f"  Correct      : {res['correct']}")
         print(f"  Explanation  : {res['explanation']}\n")
 
-    # Optional: append each result to the log file
-    if log_file is not None:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        from datetime import datetime, timezone
-        import json as _json
+        log_entry(log_file, {"scenario": "eval", **res})
 
-        with log_file.open("a", encoding="utf-8") as f:
-            for res in results:
-                entry = {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "scenario": "eval",
-                    "tx_id": res["tx_id"],
-                    "ground_truth": res["ground_truth"],
-                    "model_label": res["model_label"],
-                    "correct": res["correct"],
-                    "explanation": res["explanation"],
-                    "raw_response": res["raw_response"],
-                }
-                f.write(_json.dumps(entry) + "\n")
+    # ---- aggregate summary
+    def as_bool(x):
+        return True if x is True else False if x is False else None
 
+    tp = fp = tn = fn = 0
+    incorrect = []
+    for r in results:
+        gt = as_bool(r["ground_truth"])
+        pred = as_bool(r["model_label"])
+        if gt is None or pred is None:
+            continue  # ignore unknowns in confusion matrix
+        if gt and pred:
+            tp += 1
+        elif (not gt) and pred:
+            fp += 1
+        elif (not gt) and (not pred):
+            tn += 1
+        elif gt and (not pred):
+            fn += 1
+        if r["correct"] is False:
+            incorrect.append(r["tx_id"])
+
+    total_scored = tp + fp + tn + fn
+    accuracy = (tp + tn) / total_scored if total_scored else None
+
+    summary = {
+        "scenario": "eval_summary",
+        "tx_count": len(results),
+        "scored_count": total_scored,
+        "accuracy": accuracy,
+        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "incorrect_tx_ids": incorrect,
+    }
+    log_entry(log_file, summary)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Financial KG + LLM demo scenarios")
+    parser = argparse.ArgumentParser(
+        description="Financial KG + LLM demo scenarios")
     parser.add_argument(
         "--scenario",
         choices=["summary", "compliance", "all", "eval"],
@@ -177,11 +192,13 @@ def main() -> None:
     controller = build_controller(use_csv=args.use_csv, data_dir=args.data_dir)
 
     if args.scenario in ("summary", "all"):
-        run_summary_scenario(controller, client_id=args.client_id, log_file=args.log_file)
+        run_summary_scenario(
+            controller, client_id=args.client_id, log_file=args.log_file)
 
     if args.scenario in ("compliance", "all"):
         print()
-        run_compliance_scenario(controller, tx_id=args.tx_id, log_file=args.log_file)
+        run_compliance_scenario(
+            controller, tx_id=args.tx_id, log_file=args.log_file)
 
     if args.scenario in ("eval", "all"):
         run_eval_scenario(controller, log_file=args.log_file)
