@@ -353,7 +353,7 @@ class FinancialKG:
 
         if rules_path.exists():
             with rules_path.open("r", encoding="utf-8") as f:
-                for row in DictReader(f):
+                for row in csv.DictReader(f):
                     rule_id = row["rule_id"].strip()
                     r_uri = self.rule_uri(rule_id)
                     self.graph.add((r_uri, RDF.type, self.EX.ComplianceRule))
@@ -367,7 +367,7 @@ class FinancialKG:
 
         if tx_rules_path.exists():
             with tx_rules_path.open("r", encoding="utf-8") as f:
-                for row in DictReader(f):
+                for row in csv.DictReader(f):
                     tx_id = row["tx_id"].strip()
                     rule_id = row["rule_id"].strip()
                     rel = (row.get("relation") or "").strip().lower()
