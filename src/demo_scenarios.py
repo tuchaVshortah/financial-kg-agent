@@ -1,36 +1,213 @@
 # src/demo_scenarios.py
 
-from controller import FinancialController
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
+
 from financial_kg import FinancialKG
+from financial_llm import FinancialLLM
+from log_utils import LogReader
+from retriever import FinancialRetriever
+from controller import FinancialController
 
 
-def run_demo():
+def build_controller(use_csv: bool, data_dir: Optional[Path]) -> FinancialController:
     """
-    Run the end-to-end pipeline:
-      - Seed KG
-      - Ask a question about a client's transactions
-      - Ask for compliance explanation
+    Build a controller with either code-seeded demo data or CSV-seeded data.
     """
+    kg = FinancialKG()
 
-    # Build the controller (this also builds KG, retriever, LLM)
-    controller = FinancialController()
+    if use_csv:
+        # Default to ../data relative to this file if not provided
+        if data_dir is None:
+            data_dir = Path(__file__).resolve().parent.parent / "data"
+        kg.load_from_csv(data_dir)
+    else:
+        kg.seed_demo_data()
 
-    # Seed symbolic memory
-    controller.kg.seed_demo_data()
+    retriever = FinancialRetriever(kg)
+    llm = FinancialLLM()
+    return FinancialController(kg=kg, retriever=retriever, llm=llm)
 
-    print("=== Demo: Client A transaction summary ===")
-    answer1 = controller.answer_client_transaction_question(
-        client_id="A",
-        user_question="Summarize Client A's recent transactions and highlight any risky ones."
+
+def log_entry(log_file: Optional[Path], entry: dict) -> None:
+    if not log_file:
+        return
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    entry = {
+        **entry,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    with log_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def run_summary_scenario(controller: FinancialController, client_id: str, log_file: Optional[Path]) -> None:
+    print("=== Scenario: Client transaction summary ===")
+    print(f"Client ID: {client_id}\n")
+
+    facts = controller.retriever.get_client_transactions_facts(client_id)
+    print("Facts passed to the LLM:")
+    print(facts)
+    print()
+
+    response = controller.answer_client_transaction_question(
+        client_id=client_id,
+        user_question="Summarize this client's recent transactions and highlight any that might be risky.",
     )
-    print(answer1)
+    print("LLM response:")
+    print(response)
+
+    log_entry(
+        log_file,
+        {
+            "scenario": "summary",
+            "client_id": client_id,
+            "facts": facts,
+            "llm_response": response,
+        },
+    )
+
+
+def run_compliance_scenario(controller: FinancialController, tx_id: str, log_file: Optional[Path]) -> None:
+    print("=== Scenario: Transaction compliance explanation ===")
+    print(f"Transaction ID: {tx_id}\n")
+
+    facts = controller.retriever.get_transaction_compliance_facts(tx_id)
+    print("Facts passed to the LLM:")
+    print(facts)
     print()
 
-    print("=== Demo: Compliance explanation for T002 ===")
-    answer2 = controller.explain_transaction_compliance("T002")
-    print(answer2)
-    print()
+    response = controller.explain_transaction_compliance(tx_id=tx_id)
+    print("LLM response:")
+    print(response)
+
+    log_entry(
+        log_file,
+        {
+            "scenario": "compliance",
+            "tx_id": tx_id,
+            "facts": facts,
+            "llm_response": response,
+        },
+    )
+
+
+def run_eval_scenario(controller: FinancialController, log_file: Optional[Path] = None) -> None:
+    tx_ids = controller.kg.list_transaction_ids()
+
+    print("=== Scenario: JSON compliance evaluation ===")
+    results = []
+    for tx_id in tx_ids:
+        res = controller.evaluate_transaction_compliance_json(tx_id)
+        results.append(res)
+
+        print(f"- Transaction {tx_id}:")
+        print(f"  Ground truth : {res['ground_truth']}")
+        print(f"  Model label  : {res['model_label']}")
+        print(f"  Correct      : {res['correct']}")
+        print(f"  Explanation  : {res['explanation']}\n")
+
+        log_entry(log_file, {"scenario": "eval", **res})
+
+    # ---- aggregate summary
+    def as_bool(x):
+        return True if x is True else False if x is False else None
+
+    tp = fp = tn = fn = 0
+    incorrect = []
+    for r in results:
+        gt = as_bool(r["ground_truth"])
+        pred = as_bool(r["model_label"])
+        if gt is None or pred is None:
+            continue  # ignore unknowns in confusion matrix
+        if gt and pred:
+            tp += 1
+        elif (not gt) and pred:
+            fp += 1
+        elif (not gt) and (not pred):
+            tn += 1
+        elif gt and (not pred):
+            fn += 1
+        if r["correct"] is False:
+            incorrect.append(r["tx_id"])
+
+    total_scored = tp + fp + tn + fn
+    accuracy = (tp + tn) / total_scored if total_scored else None
+
+    summary = {
+        "scenario": "eval_summary",
+        "tx_count": len(results),
+        "scored_count": total_scored,
+        "accuracy": accuracy,
+        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "incorrect_tx_ids": incorrect,
+    }
+    log_entry(log_file, summary)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Financial KG + LLM demo scenarios")
+    parser.add_argument(
+        "--scenario",
+        choices=["summary", "compliance", "all", "eval"],
+        default="all",
+        help="Which demo scenario to run",
+    )
+    parser.add_argument(
+        "--client-id",
+        default="A",
+        help="Client ID to use for summary scenario",
+    )
+    parser.add_argument(
+        "--tx-id",
+        default="T002",
+        help="Transaction ID to use for compliance scenario",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        default=None,
+        help="Optional path to JSONL log file (e.g. logs/demo_runs.jsonl)",
+    )
+    parser.add_argument(
+        "--use-csv",
+        action="store_true",
+        help="Load KG demo data from CSV files in ../data instead of code-seeded demo data",
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=None,
+        help="Override the default ../data path for CSV loading",
+    )
+
+    args = parser.parse_args()
+
+    controller = build_controller(use_csv=args.use_csv, data_dir=args.data_dir)
+
+    if args.scenario in ("summary", "all"):
+        run_summary_scenario(
+            controller, client_id=args.client_id, log_file=args.log_file)
+
+    if args.scenario in ("compliance", "all"):
+        print()
+        run_compliance_scenario(
+            controller, tx_id=args.tx_id, log_file=args.log_file)
+
+    if args.scenario in ("eval", "all"):
+        run_eval_scenario(controller, log_file=args.log_file)
+
+    if args.log_file:
+        reader = LogReader(Path(args.log_file))
+        print("\n--- Log summary (for convenience) ---")
+        reader.print_summary()
 
 
 if __name__ == "__main__":
-    run_demo()
+    main()

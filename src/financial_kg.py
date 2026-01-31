@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable, List, Optional, Dict, Any
+import csv  # <-- NEW
 
 from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, RDFS, XSD
-
 
 # --- Domain dataclasses -----------------------------------------------------
 
@@ -130,7 +130,8 @@ class FinancialKG:
         if client.name:
             self.graph.set((c_uri, self.EX.name, Literal(client.name)))
         if client.risk_level:
-            self.graph.set((c_uri, self.EX.riskLevel, Literal(client.risk_level)))
+            self.graph.set((c_uri, self.EX.riskLevel,
+                           Literal(client.risk_level)))
 
     def add_account(self, account: Account) -> None:
         """Insert or update an account and its link to a client."""
@@ -141,7 +142,8 @@ class FinancialKG:
         self.graph.add((c_uri, self.EX.hasAccount, a_uri))
 
         if account.account_type:
-            self.graph.set((a_uri, self.EX.accountType, Literal(account.account_type)))
+            self.graph.set((a_uri, self.EX.accountType,
+                           Literal(account.account_type)))
         if account.status:
             self.graph.set((a_uri, self.EX.status, Literal(account.status)))
 
@@ -153,25 +155,42 @@ class FinancialKG:
         self.graph.add((t_uri, RDF.type, self.EX.Transaction))
         self.graph.add((a_uri, self.EX.hasTransaction, t_uri))
 
-        self.graph.set((t_uri, self.EX.amount, Literal(tx.amount, datatype=XSD.decimal)))
+        self.graph.set((t_uri, self.EX.amount, Literal(
+            tx.amount, datatype=XSD.decimal)))
         self.graph.set((t_uri, self.EX.currency, Literal(tx.currency)))
-        self.graph.set((t_uri, self.EX.date, Literal(tx.date, datatype=XSD.date)))
+        self.graph.set(
+            (t_uri, self.EX.date, Literal(tx.date, datatype=XSD.date)))
         if tx.status:
             self.graph.set((t_uri, self.EX.status, Literal(tx.status)))
 
         if tx.is_compliant is not None:
-            # We could also encode this as a data property
             self.graph.set(
-                (t_uri, self.EX.isCompliant, Literal(tx.is_compliant, datatype=XSD.boolean))
+                (t_uri, self.EX.isCompliant, Literal(
+                    tx.is_compliant, datatype=XSD.boolean))
             )
 
+        # Link to rules: compliant → isCompliantWith, non-compliant → violatesRule
         if tx.rule_ids:
             for rule_id in tx.rule_ids:
                 r_uri = self.rule_uri(rule_id)
                 self.graph.add((r_uri, RDF.type, self.EX.ComplianceRule))
-                self.graph.add((t_uri, self.EX.isCompliantWith, r_uri))
+
+                if tx.is_compliant is True:
+                    self.graph.add((t_uri, self.EX.isCompliantWith, r_uri))
+                elif tx.is_compliant is False:
+                    self.graph.add((t_uri, self.EX.violatesRule, r_uri))
 
     # --------------------------------------------------------------- Query helpers
+
+    def list_transaction_ids(self) -> list[str]:
+        query = f"""
+        PREFIX ex: <{self.base_iri}>
+        SELECT ?tx WHERE {{ ?tx a ex:Transaction . }}
+        """
+        ids = []
+        for row in self.graph.query(query):
+            ids.append(str(row.tx).split("#")[-1].replace("Transaction_", ""))
+        return sorted(set(ids))
 
     def get_transactions_for_client(self, client_id: str) -> List[Dict[str, Any]]:
         """
@@ -240,6 +259,168 @@ class FinancialKG:
             "rules": rules,
         }
 
+    def get_transaction_compliance_label(self, tx_id: str) -> Optional[bool]:
+        """
+        Return the ground-truth compliance label for a transaction based on the KG.
+
+        Returns
+        -------
+        Optional[bool]
+            True if compliant, False if non-compliant, or None if not specified.
+        """
+        t_uri = self.tx_uri(tx_id)
+        query = f"""
+        PREFIX ex: <{self.base_iri}>
+        SELECT ?isCompliant
+        WHERE {{
+            <{t_uri}> ex:isCompliant ?isCompliant .
+        }}
+        """
+        results = list(self.graph.query(query))
+        if not results:
+            return None
+
+        # We assume at most one isCompliant triple
+        row = results[0]
+        # RDFLib already maps xsd:boolean to Python bool in most cases,
+        # but we guard with a simple cast fallback.
+        val = row.isCompliant.toPython() if hasattr(
+            row.isCompliant, "toPython") else row.isCompliant
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            return val.lower() == "true"
+        return None
+
+    # ---------------------------------------------------------- CSV data loader
+
+    def load_from_csv(self, data_dir: Path) -> None:
+        """
+        Load clients, accounts, and transactions from CSV files in `data_dir`.
+
+        Expected files (all optional, but processed in this order if present):
+          - clients.csv
+          - accounts.csv
+          - transactions.csv
+
+        Each file is expected to have a header row. See repository docs or
+        README for column definitions.
+        """
+        data_dir = Path(data_dir)
+
+        clients_path = data_dir / "clients.csv"
+        accounts_path = data_dir / "accounts.csv"
+        tx_path = data_dir / "transactions.csv"
+        rules_path = data_dir / "rules.csv"
+        tx_rules_path = data_dir / "tx_rules.csv"
+
+        # --- Load clients -----------------------------------------------------
+        if clients_path.exists():
+            with clients_path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    client = Client(
+                        client_id=row["client_id"],
+                        name=row.get("name") or None,
+                        risk_level=row.get("risk_level") or None,
+                    )
+                    self.add_client(client)
+
+        # --- Load accounts ----------------------------------------------------
+        if accounts_path.exists():
+            with accounts_path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    account = Account(
+                        account_id=row["account_id"],
+                        client_id=row["client_id"],
+                        account_type=row.get("account_type") or None,
+                        status=row.get("status") or None,
+                    )
+                    self.add_account(account)
+
+        # --- Load transactions -----------------------------------------------
+        if tx_path.exists():
+            with tx_path.open("r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    amount = self._parse_decimal(row.get("amount"))
+                    is_compliant = self._parse_bool(row.get("is_compliant"))
+                    rule_ids = self._parse_rule_ids(row.get("rule_ids"))
+
+                    tx = Transaction(
+                        tx_id=row["tx_id"],
+                        account_id=row["account_id"],
+                        amount=amount if amount is not None else Decimal(
+                            "0.0"),
+                        currency=row.get("currency") or "USD",
+                        date=row.get("date") or "1970-01-01",
+                        status=row.get("status") or None,
+                        is_compliant=is_compliant,
+                        rule_ids=rule_ids,
+                    )
+                    self.add_transaction(tx)
+
+        if rules_path.exists():
+            with rules_path.open("r", encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    rule_id = row["rule_id"].strip()
+                    r_uri = self.rule_uri(rule_id)
+                    self.graph.add((r_uri, RDF.type, self.EX.ComplianceRule))
+                    desc = (row.get("description") or "").strip()
+                    if desc:
+                        self.graph.set(
+                            (r_uri, self.EX.description, Literal(desc)))
+                    sev = (row.get("severity") or "").strip()
+                    if sev:
+                        self.graph.set((r_uri, self.EX.severity, Literal(sev)))
+
+        if tx_rules_path.exists():
+            with tx_rules_path.open("r", encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    tx_id = row["tx_id"].strip()
+                    rule_id = row["rule_id"].strip()
+                    rel = (row.get("relation") or "").strip().lower()
+
+                    t_uri = self.tx_uri(tx_id)
+                    r_uri = self.rule_uri(rule_id)
+                    self.graph.add((r_uri, RDF.type, self.EX.ComplianceRule))
+
+                    if rel == "compliant":
+                        self.graph.add((t_uri, self.EX.isCompliantWith, r_uri))
+                    elif rel == "violates":
+                        self.graph.add((t_uri, self.EX.violatesRule, r_uri))
+
+    # ---------------------------------------------------------- CSV helpers
+
+    @staticmethod
+    def _parse_decimal(value: Optional[str]) -> Optional[Decimal]:
+        if value is None or value == "":
+            return None
+        try:
+            return Decimal(value)
+        except (InvalidOperation, ValueError):
+            return None
+
+    @staticmethod
+    def _parse_bool(value: Optional[str]) -> Optional[bool]:
+        if value is None:
+            return None
+        v = value.strip().lower()
+        if v in {"true", "1", "yes", "y"}:
+            return True
+        if v in {"false", "0", "no", "n"}:
+            return False
+        return None
+
+    @staticmethod
+    def _parse_rule_ids(value: Optional[str]) -> Optional[List[str]]:
+        if not value:
+            return None
+        # Expect comma-separated rule IDs, e.g. "KYC,AML_THRESHOLD"
+        parts = [p.strip() for p in value.split(",") if p.strip()]
+        return parts or None
+
     # -------------------------------------------------------------- Serialization
 
     def save_turtle(self, path: Path) -> None:
@@ -258,8 +439,10 @@ class FinancialKG:
         client = Client(client_id="A", name="Client A", risk_level="medium")
         self.add_client(client)
 
-        account1 = Account(account_id="A1", client_id="A", account_type="checking", status="active")
-        account2 = Account(account_id="A2", client_id="A", account_type="savings", status="active")
+        account1 = Account(account_id="A1", client_id="A",
+                           account_type="checking", status="active")
+        account2 = Account(account_id="A2", client_id="A",
+                           account_type="savings", status="active")
         self.add_account(account1)
         self.add_account(account2)
 

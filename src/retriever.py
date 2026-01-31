@@ -73,76 +73,77 @@ class FinancialRetriever:
         return [self._tx_dict_to_fact(t) for t in raw]
 
     def get_client_transactions_facts(
-        self, client_id: str
+        self,
+        client_id: str,
+        include_compliance_flag: bool = False,
     ) -> str:
         """
-        Return a human-readable summary of transactions for a client,
-        suitable for injection into the LLM as contextual facts.
+        Returns a textual summary of all transactions for a given client.
+
+        If include_compliance_flag is True, the textual summary will contain
+        the `compliance: true / false / unknown` field for each transaction.
+        Otherwise, that field is omitted, and the LLM must infer risk/compliance
+        only from amounts, dates, etc.
         """
-        tx_facts = self.get_client_transactions(client_id)
+        txs = self.kg.get_transactions_for_client(client_id)
 
-        if not tx_facts:
-            return f"No transactions found for client '{client_id}'."
+        if not txs:
+            return f"No known transactions for client '{client_id}'."
 
-        lines: List[str] = []
-        lines.append(f"Known transactions for client '{client_id}':")
+        lines = [f"Known transactions for client '{client_id}':"]
+        for tx in txs:
+            tx_id = tx["tx_uri"].split("#")[-1]
+            amount = tx.get("amount")
+            currency = tx.get("currency")
+            date = tx.get("date")
+            status = tx.get("status") or "unknown"
 
-        for tx in tx_facts:
-            # Build a compact descriptive sentence
-            parts = []
+            # Ground truth, but *optionally* shown to the LLM
+            is_compliant = tx.get("is_compliant")
+            if is_compliant is None:
+                compliance_str = "unknown"
+            else:
+                compliance_str = "true" if is_compliant else "false"
 
-            if tx.date:
-                parts.append(f"on {tx.date}")
-            parts.append(f"transaction {tx.tx_id}")
-
-            if tx.amount is not None and tx.currency:
-                parts.append(f"of {tx.amount:.2f} {tx.currency}")
-
-            if tx.status:
-                parts.append(f"status: {tx.status}")
-
-            if tx.is_compliant is not None:
-                parts.append(
-                    f"compliance: {'compliant' if tx.is_compliant else 'non-compliant'}"
-                )
-
-            line = "- " + ", ".join(parts)
-            lines.append(line)
-
-        return "\n".join(lines)
-
-    def get_transaction_compliance_facts(
-        self, tx_id: str
-    ) -> str:
-        """
-        Return a human-readable explanation of which rules a transaction
-        is compliant with or violates, based on KG content.
-        """
-        data = self.kg.explain_transaction_compliance(tx_id)
-        rules = data.get("rules", [])
-
-        if not rules:
-            return (
-                f"No explicit compliance or violation rules were found "
-                f"for transaction '{tx_id}'."
+            # Build the base line
+            base = (
+                f"- on {date}, transaction {tx_id}, "
+                f"of {amount:.2f} {currency}, status: {status}"
             )
 
-        lines: List[str] = [f"Compliance-related facts for transaction '{tx_id}':"]
-        for r in rules:
-            rule_short = self._shorten_uri(r["rule_uri"])
-            relation = r["relation"]
+            if include_compliance_flag:
+                base += f", compliance: {compliance_str}"
 
-            if relation == "compliantWith":
-                lines.append(f"- Transaction {tx_id} is compliant with rule {rule_short}.")
-            elif relation == "violatesRule":
-                lines.append(f"- Transaction {tx_id} violates rule {rule_short}.")
-            else:
-                lines.append(
-                    f"- Transaction {tx_id} has relation '{relation}' with rule {rule_short}."
-                )
+            lines.append(base)
 
         return "\n".join(lines)
 
+    def get_transaction_compliance_facts(self, tx_id: str) -> str:
+        """
+        Return a human-readable description of which rules a transaction
+        is compliant with or violates, based on KG relations.
+        """
+        info = self.kg.explain_transaction_compliance(tx_id)
+        rules = info.get("rules", [])
+
+        lines = [f"Compliance-related facts for transaction '{tx_id}':"]
+        if not rules:
+            lines.append(f"- No explicit compliance or violation rules are recorded for transaction {tx_id}.")
+        else:
+            for r in rules:
+                rule_uri = r.get("rule_uri")
+                relation = r.get("relation")  # "compliantWith" or "violatesRule"
+                rule_id = rule_uri.split("#")[-1] if rule_uri else "UNKNOWN_RULE"
+
+                if relation == "compliantWith":
+                    lines.append(f"- Transaction {tx_id} is compliant with rule {rule_id}.")
+                elif relation == "violatesRule":
+                    lines.append(f"- Transaction {tx_id} violates rule {rule_id}.")
+                else:
+                    lines.append(f"- Transaction {tx_id} is related to rule {rule_id} (relation: {relation}).")
+
+        return "\n".join(lines)
+    
     def build_context_for_client_and_tx(
         self,
         client_id: str,

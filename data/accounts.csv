@@ -1,0 +1,4 @@
+account_id,client_id,account_type,status
+A1,A,checking,active
+A2,A,savings,active
+B1,B,checking,active
