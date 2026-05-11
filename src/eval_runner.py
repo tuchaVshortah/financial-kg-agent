@@ -30,7 +30,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple, runtime_checkable
 
 from .eval_arms import Arm, TxContext, get_arms
 from .financial_kg import FinancialKG
@@ -179,20 +179,23 @@ def build_tx_context(
 # --------------------------------------------------------------------------- #
 
 
-class _LLMLike:
+@runtime_checkable
+class _LLMLike(Protocol):
     """
-    Minimal interface the runner needs from an LLM client:
+    Minimal structural interface the runner needs from an LLM client:
         ask_compliance_json(user_message, context_facts) -> (parsed_dict, raw_str)
-    Both `FinancialLLM` and `DryRunLLM` implement this.
+
+    Both `FinancialLLM` (real OpenAI client) and `DryRunLLM` (offline
+    stand-in) satisfy this by shape — no inheritance required. Marked
+    `runtime_checkable` so `isinstance(x, _LLMLike)` is also valid.
     """
 
     def ask_compliance_json(
         self, user_message: str, context_facts: str
-    ) -> Tuple[Optional[Dict[str, Any]], str]:  # pragma: no cover - interface
-        raise NotImplementedError
+    ) -> Tuple[Optional[Dict[str, Any]], str]: ...
 
 
-class DryRunLLM(_LLMLike):
+class DryRunLLM:
     """
     Offline stand-in for `FinancialLLM`. Returns predictions derived
     *from the facts string itself*, so the runner exercises end-to-end
