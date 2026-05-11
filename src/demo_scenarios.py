@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from financial_kg import FinancialKG
-from financial_llm import FinancialLLM
-from log_utils import LogReader
-from retriever import FinancialRetriever
-from controller import FinancialController
+from .financial_kg import FinancialKG
+from .financial_llm import FinancialLLM
+from .log_utils import LogReader
+from .retriever import FinancialRetriever
+from .controller import FinancialController
 
 
 def build_controller(use_csv: bool, data_dir: Optional[Path]) -> FinancialController:

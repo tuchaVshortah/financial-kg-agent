@@ -1,15 +1,12 @@
 # src/financial_llm.py
 
-import os
 import time
 import json
 from typing import Optional, Dict, Any, List, Literal, Tuple
 
 from openai import OpenAI
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+from .config import OPENAI_API_KEY
 
 JsonAnswerMode = Literal["qa", "evaluation"]
 
@@ -35,11 +32,7 @@ class FinancialLLM:
         max_retries: int = 3,
         system_prompt: Optional[str] = None,
     ) -> None:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables.")
-
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=OPENAI_API_KEY)
         self.model = model
         self.temperature = temperature
         self.max_retries = max_retries

@@ -218,15 +218,24 @@ class FinancialKG:
 
         txs: List[Dict[str, Any]] = []
         for row in results:
+            ic = row.isCompliant
+            if ic is None:
+                is_compliant: Optional[bool] = None
+            else:
+                # rdflib xsd:boolean → Python bool via toPython();
+                # bool(Literal('false')) is True (non-empty string), so don't use it.
+                val = ic.toPython() if hasattr(ic, "toPython") else ic
+                is_compliant = val if isinstance(val, bool) else str(val).lower() == "true"
+
             txs.append(
                 {
                     "tx_uri": str(row.tx),
                     "account_uri": str(row.account),
-                    "amount": float(row.amount) if row.amount else None,
+                    "amount": float(row.amount) if row.amount is not None else None,
                     "currency": str(row.currency) if row.currency else None,
                     "date": str(row.date) if row.date else None,
                     "status": str(row.status) if row.status else None,
-                    "is_compliant": bool(row.isCompliant) if row.isCompliant else None,
+                    "is_compliant": is_compliant,
                 }
             )
         return txs
