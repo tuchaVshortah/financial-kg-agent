@@ -1,4 +1,501 @@
-tx_id,account_id,amount,currency,date,status,is_compliant,rule_ids
-T001,A1,9500.00,USD,2024-05-10,completed,true,KYC
-T002,A1,15000.00,USD,2024-05-12,completed,false,"KYC,AML_THRESHOLD"
-T003,A2,500.00,EUR,2024-05-15,completed,true,KYC
+tx_id,account_id,amount,currency,amount_usd,date,status,is_compliant,rule_ids,counterparty_id,counterparty_country,tx_type,description
+T0001,A0063,28918304.55,KZT,63620.27,2024-06-01,completed,false,AML_THRESHOLD,CP_069,FR,card_payment,AML-scenario tx (target USD=63620.27)
+T0177,A0092,7636.16,USD,7636.16,2024-06-01,completed,true,SANCTIONS,CP_021,JP,card_payment,Normal-CP tx in sanctions scenario
+T0461,A0072,1617.17,USD,1617.17,2024-06-01,completed,true,,CP_066,PL,wire,Normal compliant tx (negative class)
+T0100,A0044,9656.69,USD,9656.69,2024-06-02,completed,false,STRUCTURING,CP_048,AE,transfer,Structuring cluster member (2/5)
+T0101,A0044,9740.23,USD,9740.23,2024-06-02,completed,false,STRUCTURING,CP_048,AE,wire,Structuring cluster member (3/5)
+T0099,A0044,9181.22,USD,9181.22,2024-06-03,completed,false,STRUCTURING,CP_048,AE,card_payment,Structuring cluster member (1/5)
+T0102,A0044,9745.37,USD,9745.37,2024-06-03,completed,false,STRUCTURING,CP_048,AE,cash_withdrawal,Structuring cluster member (4/5)
+T0245,A0099,2786.03,USD,2786.03,2024-06-03,completed,true,KYC_EXPIRED,CP_064,US,wire,Tx within KYC validity window
+T0285,A0064,16293.05,EUR,17596.49,2024-06-03,completed,true,HIGH_RISK_JURISDICTION,CP_047,MM,cash_deposit,EDD applied: enhanced verification complete
+T0362,A0009,17643.32,USD,17643.32,2024-06-03,completed,false,DORMANT_REACTIVATION,CP_022,CA,cash_deposit,Reactivation after long dormancy
+T0006,A0033,30198.76,USD,30198.76,2024-06-04,completed,false,AML_THRESHOLD,CP_023,DE,card_payment,AML-scenario tx (target USD=30198.76)
+T0103,A0044,9419.41,USD,9419.41,2024-06-04,completed,false,STRUCTURING,CP_048,AE,transfer,Structuring cluster member (5/5)
+T0489,A0012,3430.69,GBP,4356.98,2024-06-04,completed,true,,CP_071,AE,cash_deposit,Normal compliant tx (negative class)
+T0492,A0012,2272.70,GBP,2886.33,2024-06-04,completed,true,,CP_003,CA,cash_deposit,Normal compliant tx (negative class)
+T0171,A0079,22693.51,USD,22693.51,2024-06-05,completed,true,SANCTIONS,CP_001,GB,cash_deposit,Normal-CP tx in sanctions scenario
+T0028,A0070,51027.85,EUR,55110.08,2024-06-08,completed,false,AML_THRESHOLD,CP_024,TR,wire,AML-scenario tx (target USD=55110.08)
+T0075,A0082,4405.60,USD,4405.60,2024-06-08,completed,true,AML_THRESHOLD,CP_041,JP,wire,AML-scenario tx (target USD=4405.60)
+T0229,A0088,7275.20,EUR,7857.22,2024-06-08,completed,true,KYC_EXPIRED,CP_006,AU,wire,Tx within KYC validity window
+T0231,A0089,5910.22,USD,5910.22,2024-06-08,completed,true,KYC_EXPIRED,CP_057,ES,cash_withdrawal,Tx within KYC validity window
+T0203,A0038,7106.29,GBP,9024.99,2024-06-09,completed,false,KYC_EXPIRED,CP_053,CA,card_payment,Tx after KYC expiry
+T0448,A0099,1472.82,USD,1472.82,2024-06-09,completed,true,,CP_034,IT,cash_withdrawal,Normal compliant tx (negative class)
+T0189,A0051,9526.21,GBP,12098.29,2024-06-10,completed,true,SANCTIONS,CP_074,AE,transfer,Normal-CP tx in sanctions scenario
+T0284,A0023,17325.45,EUR,18711.49,2024-06-10,completed,true,HIGH_RISK_JURISDICTION,CP_015,IR,cash_withdrawal,EDD applied: enhanced verification complete
+T0407,A0089,5000.00,USD,5000.00,2024-06-10,completed,true,ROUND_NUMBER_ANOMALY,CP_057,ES,cash_deposit,Isolated round-amount tx (not SB cluster)
+T0117,A0010,7764.49,GBP,9860.90,2024-06-11,completed,true,STRUCTURING,CP_054,AE,cash_withdrawal,Isolated near-threshold tx (not structuring)
+T0328,A0095,905.98,USD,905.98,2024-06-12,completed,true,VELOCITY,CP_055,AU,card_payment,Compliant low-velocity cluster (1/2)
+T0329,A0095,1521.05,USD,1521.05,2024-06-12,completed,true,VELOCITY,CP_030,BR,wire,Compliant low-velocity cluster (2/2)
+T0373,A0061,3385.26,USD,3385.26,2024-06-12,completed,true,DORMANT_REACTIVATION,CP_037,FR,cash_deposit,Tx within normal activity window
+T0410,A0022,5000.00,USD,5000.00,2024-06-12,completed,true,ROUND_NUMBER_ANOMALY,CP_088,GB,card_payment,Isolated round-amount tx (not SB cluster)
+T0190,A0037,21622.39,USD,21622.39,2024-06-13,completed,true,SANCTIONS,CP_049,AE,cash_deposit,Normal-CP tx in sanctions scenario
+T0142,A0053,13490.54,GBP,17132.99,2024-06-14,completed,false,SANCTIONS,CP_SAN_06,MM,cash_deposit,Sanctioned-CP tx
+T0247,A0063,238763.64,KZT,525.28,2024-06-14,completed,true,KYC_EXPIRED,CP_050,KZ,card_payment,Tx within KYC validity window
+T0378,A0065,2290.02,EUR,2473.22,2024-06-14,completed,true,DORMANT_REACTIVATION,CP_048,AE,wire,Tx within normal activity window
+T0133,A0040,9451.46,USD,9451.46,2024-06-15,completed,true,STRUCTURING,CP_063,AU,cash_deposit,Isolated near-threshold tx (not structuring)
+T0222,A0069,3936681.82,KZT,8660.70,2024-06-15,completed,true,KYC_EXPIRED,CP_068,IT,wire,Tx within KYC validity window
+T0294,A0002,12971.29,EUR,14008.99,2024-06-16,completed,true,HIGH_RISK_JURISDICTION,CP_047,MM,wire,EDD applied: enhanced verification complete
+T0217,A0035,6623.56,GBP,8411.92,2024-06-17,completed,false,KYC_EXPIRED,CP_084,NL,cash_deposit,Tx after KYC expiry
+T0182,A0096,8563.70,EUR,9248.80,2024-06-18,completed,true,SANCTIONS,CP_003,CA,cash_deposit,Normal-CP tx in sanctions scenario
+T0326,A0027,1118.69,EUR,1208.19,2024-06-18,completed,true,VELOCITY,CP_014,GB,cash_withdrawal,Compliant low-velocity cluster (1/2)
+T0327,A0027,1259.68,EUR,1360.45,2024-06-18,completed,true,VELOCITY,CP_082,TR,wire,Compliant low-velocity cluster (2/2)
+T0420,A0057,2000.00,USD,2000.00,2024-06-18,completed,true,ROUND_NUMBER_ANOMALY,CP_061,NL,cash_deposit,Isolated round-amount tx (not SB cluster)
+T0233,A0034,2895.88,USD,2895.88,2024-06-19,completed,true,KYC_EXPIRED,CP_055,AU,wire,Tx within KYC validity window
+T0124,A0029,9054.02,EUR,9778.34,2024-06-20,completed,true,STRUCTURING,CP_045,AU,card_payment,Isolated near-threshold tx (not structuring)
+T0459,A0096,1713.74,EUR,1850.84,2024-06-20,completed,true,,CP_057,ES,wire,Normal compliant tx (negative class)
+T0194,A0037,6934.56,USD,6934.56,2024-06-21,completed,false,KYC_EXPIRED,CP_012,AE,cash_withdrawal,Tx after KYC expiry
+T0299,A0098,17526.13,USD,17526.13,2024-06-21,completed,true,HIGH_RISK_JURISDICTION,CP_076,SY,card_payment,EDD applied: enhanced verification complete
+T0147,A0017,16542.99,EUR,17866.43,2024-06-22,completed,false,SANCTIONS,CP_SAN_10,SY,cash_deposit,Sanctioned-CP tx
+T0449,A0041,1921604.55,KZT,4227.53,2024-06-23,completed,true,,CP_048,AE,cash_withdrawal,Normal compliant tx (negative class)
+T0134,A0037,9644.02,USD,9644.02,2024-06-24,completed,true,STRUCTURING,CP_011,AU,card_payment,Isolated near-threshold tx (not structuring)
+T0165,A0066,19315.41,EUR,20860.64,2024-06-24,completed,false,SANCTIONS,CP_SAN_03,MM,transfer,Sanctioned-CP tx
+T0242,A0079,4775.28,USD,4775.28,2024-06-24,completed,true,KYC_EXPIRED,CP_042,DE,cash_withdrawal,Tx within KYC validity window
+T0344,A0048,1462.94,USD,1462.94,2024-06-24,completed,true,VELOCITY,CP_072,KZ,transfer,Compliant low-velocity cluster (1/3)
+T0345,A0048,573.50,USD,573.50,2024-06-24,completed,true,VELOCITY,CP_007,IT,card_payment,Compliant low-velocity cluster (2/3)
+T0346,A0048,127.12,USD,127.12,2024-06-24,completed,true,VELOCITY,CP_083,SG,wire,Compliant low-velocity cluster (3/3)
+T0238,A0045,2430.44,USD,2430.44,2024-06-25,completed,true,KYC_EXPIRED,CP_061,NL,wire,Tx within KYC validity window
+T0250,A0095,1216.82,USD,1216.82,2024-06-25,completed,true,KYC_EXPIRED,CP_084,NL,cash_withdrawal,Tx within KYC validity window
+T0366,A0023,8076.33,EUR,8722.44,2024-06-25,completed,false,DORMANT_REACTIVATION,CP_016,GB,transfer,Reactivation after long dormancy
+T0472,A0068,366.18,GBP,465.05,2024-06-25,completed,true,,CP_089,JP,wire,Normal compliant tx (negative class)
+T0027,A0032,30085.16,GBP,38208.15,2024-06-26,completed,false,AML_THRESHOLD,CP_013,CA,wire,AML-scenario tx (target USD=38208.15)
+T0168,A0048,1190.59,USD,1190.59,2024-06-26,completed,false,SANCTIONS,CP_SAN_04,RU,cash_deposit,Sanctioned-CP tx
+T0412,A0056,925.93,EUR,1000.00,2024-06-26,completed,true,ROUND_NUMBER_ANOMALY,CP_016,GB,cash_deposit,Isolated round-amount tx (not SB cluster)
+T0385,A0047,2092.83,USD,2092.83,2024-06-27,completed,true,DORMANT_REACTIVATION,CP_037,FR,cash_withdrawal,Tx within normal activity window
+T0076,A0077,4106.97,USD,4106.97,2024-06-28,completed,true,AML_THRESHOLD,CP_055,AU,cash_withdrawal,AML-scenario tx (target USD=4106.97)
+T0384,A0041,3870527.27,KZT,8515.16,2024-06-28,completed,true,DORMANT_REACTIVATION,CP_050,KZ,cash_withdrawal,Tx within normal activity window
+T0069,A0085,5989.00,GBP,7606.03,2024-06-29,completed,true,AML_THRESHOLD,CP_035,AU,wire,AML-scenario tx (target USD=7606.03)
+T0258,A0003,6959.17,USD,6959.17,2024-06-29,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,cash_withdrawal,no EDD applied
+T0007,A0064,22782.91,EUR,24605.54,2024-06-30,completed,false,AML_THRESHOLD,CP_013,CA,cash_withdrawal,AML-scenario tx (target USD=24605.54)
+T0056,A0007,9461.72,USD,9461.72,2024-06-30,completed,true,AML_THRESHOLD,CP_041,JP,wire,AML-scenario tx (target USD=9461.72)
+T0417,A0038,787.40,GBP,1000.00,2024-06-30,completed,true,ROUND_NUMBER_ANOMALY,CP_057,ES,transfer,Isolated round-amount tx (not SB cluster)
+T0429,A0057,981.72,USD,981.72,2024-06-30,completed,true,,CP_044,IT,cash_deposit,Normal compliant tx (negative class)
+T0431,A0061,1935.61,USD,1935.61,2024-06-30,completed,true,,CP_084,NL,cash_deposit,Normal compliant tx (negative class)
+T0445,A0086,572.47,USD,572.47,2024-06-30,completed,true,,CP_069,FR,cash_deposit,Normal compliant tx (negative class)
+T0500,A0034,4532.18,USD,4532.18,2024-06-30,completed,true,,CP_013,CA,cash_withdrawal,Normal compliant tx (negative class)
+T0114,A0098,9289.16,USD,9289.16,2024-07-01,completed,true,STRUCTURING,CP_035,AU,wire,Isolated near-threshold tx (not structuring)
+T0063,A0010,2120.70,GBP,2693.29,2024-07-02,completed,true,AML_THRESHOLD,CP_054,AE,cash_withdrawal,AML-scenario tx (target USD=2693.29)
+T0214,A0066,4520.65,EUR,4882.30,2024-07-02,completed,false,KYC_EXPIRED,CP_050,KZ,transfer,Tx after KYC expiry
+T0044,A0007,3529.70,USD,3529.70,2024-07-04,completed,true,AML_THRESHOLD,CP_080,GB,wire,AML-scenario tx (target USD=3529.70)
+T0011,A0092,58509.02,USD,58509.02,2024-07-05,completed,false,AML_THRESHOLD,CP_069,FR,wire,AML-scenario tx (target USD=58509.02)
+T0433,A0094,433.59,USD,433.59,2024-07-05,completed,true,,CP_081,FR,cash_deposit,Normal compliant tx (negative class)
+T0042,A0040,6500.04,USD,6500.04,2024-07-06,completed,true,AML_THRESHOLD,CP_090,DE,wire,AML-scenario tx (target USD=6500.04)
+T0055,A0049,3937.98,USD,3937.98,2024-07-06,completed,true,AML_THRESHOLD,CP_089,JP,wire,AML-scenario tx (target USD=3937.98)
+T0483,A0055,1554.78,USD,1554.78,2024-07-06,completed,true,,CP_058,AU,transfer,Normal compliant tx (negative class)
+T0032,A0033,69333.89,USD,69333.89,2024-07-07,completed,false,AML_THRESHOLD,CP_067,CA,transfer,AML-scenario tx (target USD=69333.89)
+T0332,A0039,1066.44,USD,1066.44,2024-07-07,completed,true,VELOCITY,CP_090,DE,cash_withdrawal,Compliant low-velocity cluster (1/2)
+T0333,A0039,586.55,USD,586.55,2024-07-07,completed,true,VELOCITY,CP_041,JP,card_payment,Compliant low-velocity cluster (2/2)
+T0068,A0021,57568.18,KZT,126.65,2024-07-08,completed,true,AML_THRESHOLD,CP_082,TR,transfer,AML-scenario tx (target USD=126.65)
+T0014,A0090,41826.62,USD,41826.62,2024-07-09,completed,false,AML_THRESHOLD,CP_090,DE,cash_withdrawal,AML-scenario tx (target USD=41826.62)
+T0022,A0021,30277563.64,KZT,66610.64,2024-07-10,completed,false,AML_THRESHOLD,CP_056,BR,wire,AML-scenario tx (target USD=66610.64)
+T0497,A0081,4774.65,USD,4774.65,2024-07-10,completed,true,,CP_029,KZ,card_payment,Normal compliant tx (negative class)
+T0034,A0073,54044.71,USD,54044.71,2024-07-11,completed,false,AML_THRESHOLD,CP_039,JP,wire,AML-scenario tx (target USD=54044.71)
+T0467,A0005,4555.63,USD,4555.63,2024-07-11,completed,true,,CP_018,AU,cash_withdrawal,Normal compliant tx (negative class)
+T0223,A0082,2958.77,USD,2958.77,2024-07-12,completed,true,KYC_EXPIRED,CP_022,CA,cash_deposit,Tx within KYC validity window
+T0376,A0010,2220.58,GBP,2820.14,2024-07-12,completed,true,DORMANT_REACTIVATION,CP_041,JP,cash_withdrawal,Tx within normal activity window
+T0301,A0008,1716.25,USD,1716.25,2024-07-13,completed,false,VELOCITY,CP_044,IT,cash_withdrawal,Velocity burst tx (1/14)
+T0302,A0008,1376.58,USD,1376.58,2024-07-13,completed,false,VELOCITY,CP_017,IT,card_payment,Velocity burst tx (2/14)
+T0303,A0008,227.34,USD,227.34,2024-07-13,completed,false,VELOCITY,CP_066,PL,card_payment,Velocity burst tx (3/14)
+T0304,A0008,1626.95,USD,1626.95,2024-07-13,completed,false,VELOCITY,CP_061,NL,cash_withdrawal,Velocity burst tx (4/14)
+T0305,A0008,1050.83,USD,1050.83,2024-07-13,completed,false,VELOCITY,CP_019,JP,cash_withdrawal,Velocity burst tx (5/14)
+T0306,A0008,162.59,USD,162.59,2024-07-13,completed,false,VELOCITY,CP_078,TR,cash_withdrawal,Velocity burst tx (6/14)
+T0307,A0008,1460.40,USD,1460.40,2024-07-13,completed,false,VELOCITY,CP_042,DE,cash_withdrawal,Velocity burst tx (7/14)
+T0308,A0008,1642.08,USD,1642.08,2024-07-13,completed,false,VELOCITY,CP_035,AU,transfer,Velocity burst tx (8/14)
+T0309,A0008,192.41,USD,192.41,2024-07-13,completed,false,VELOCITY,CP_080,GB,cash_withdrawal,Velocity burst tx (9/14)
+T0310,A0008,1415.75,USD,1415.75,2024-07-13,completed,false,VELOCITY,CP_048,AE,card_payment,Velocity burst tx (10/14)
+T0311,A0008,1872.44,USD,1872.44,2024-07-13,completed,false,VELOCITY,CP_008,TR,wire,Velocity burst tx (11/14)
+T0312,A0008,111.88,USD,111.88,2024-07-13,completed,false,VELOCITY,CP_064,US,cash_withdrawal,Velocity burst tx (12/14)
+T0313,A0008,1549.50,USD,1549.50,2024-07-13,completed,false,VELOCITY,CP_026,AE,cash_withdrawal,Velocity burst tx (13/14)
+T0314,A0008,1986.07,USD,1986.07,2024-07-13,completed,false,VELOCITY,CP_051,TR,cash_withdrawal,Velocity burst tx (14/14)
+T0451,A0055,3107.92,USD,3107.92,2024-07-13,completed,true,,CP_084,NL,card_payment,Normal compliant tx (negative class)
+T0045,A0048,7126.32,USD,7126.32,2024-07-15,completed,true,AML_THRESHOLD,CP_044,IT,transfer,AML-scenario tx (target USD=7126.32)
+T0139,A0092,9504.04,USD,9504.04,2024-07-15,completed,true,STRUCTURING,CP_012,AE,wire,Isolated near-threshold tx (not structuring)
+T0334,A0095,1373.56,USD,1373.56,2024-07-15,completed,true,VELOCITY,CP_086,IT,card_payment,Compliant low-velocity cluster (1/4)
+T0335,A0095,141.42,USD,141.42,2024-07-15,completed,true,VELOCITY,CP_067,CA,cash_deposit,Compliant low-velocity cluster (2/4)
+T0336,A0095,1359.12,USD,1359.12,2024-07-15,completed,true,VELOCITY,CP_088,GB,card_payment,Compliant low-velocity cluster (3/4)
+T0337,A0095,1407.80,USD,1407.80,2024-07-15,completed,true,VELOCITY,CP_043,GB,cash_withdrawal,Compliant low-velocity cluster (4/4)
+T0155,A0077,4279.19,USD,4279.19,2024-07-17,completed,false,SANCTIONS,CP_SAN_07,AF,card_payment,Sanctioned-CP tx
+T0434,A0018,1510.25,USD,1510.25,2024-07-17,completed,true,,CP_033,JP,cash_deposit,Normal compliant tx (negative class)
+T0178,A0046,14481.26,USD,14481.26,2024-07-18,completed,true,SANCTIONS,CP_033,JP,wire,Normal-CP tx in sanctions scenario
+T0291,A0066,12546.75,EUR,13550.49,2024-07-18,completed,true,HIGH_RISK_JURISDICTION,CP_073,VE,transfer,EDD applied: enhanced verification complete
+T0016,A0060,70635.40,USD,70635.40,2024-07-19,completed,false,AML_THRESHOLD,CP_062,BR,transfer,AML-scenario tx (target USD=70635.40)
+T0041,A0093,2158.64,USD,2158.64,2024-07-19,completed,true,AML_THRESHOLD,CP_049,AE,card_payment,AML-scenario tx (target USD=2158.64)
+T0125,A0082,9530.07,USD,9530.07,2024-07-20,completed,true,STRUCTURING,CP_017,IT,cash_deposit,Isolated near-threshold tx (not structuring)
+T0036,A0040,64944.76,USD,64944.76,2024-07-21,completed,false,AML_THRESHOLD,CP_062,BR,cash_withdrawal,AML-scenario tx (target USD=64944.76)
+T0425,A0062,3618.46,USD,3618.46,2024-07-21,completed,true,,CP_004,TR,cash_withdrawal,Normal compliant tx (negative class)
+T0187,A0009,1406.10,USD,1406.10,2024-07-22,completed,true,SANCTIONS,CP_062,BR,wire,Normal-CP tx in sanctions scenario
+T0354,A0098,12823.05,USD,12823.05,2024-07-23,completed,false,DORMANT_REACTIVATION,CP_043,GB,wire,Reactivation after long dormancy
+T0113,A0001,8612.15,EUR,9301.12,2024-07-25,completed,true,STRUCTURING,CP_029,KZ,transfer,Isolated near-threshold tx (not structuring)
+T0243,A0080,9186.85,USD,9186.85,2024-07-26,completed,true,KYC_EXPIRED,CP_062,BR,card_payment,Tx within KYC validity window
+T0481,A0064,3120.78,EUR,3370.44,2024-07-26,completed,true,,CP_084,NL,wire,Normal compliant tx (negative class)
+T0296,A0089,7667.11,USD,7667.11,2024-07-27,completed,true,HIGH_RISK_JURISDICTION,CP_047,MM,transfer,EDD applied: enhanced verification complete
+T0372,A0068,6203.93,GBP,7878.99,2024-07-29,completed,true,DORMANT_REACTIVATION,CP_006,AU,card_payment,Tx within normal activity window
+T0067,A0029,1972.17,EUR,2129.94,2024-07-30,completed,true,AML_THRESHOLD,CP_081,FR,cash_deposit,AML-scenario tx (target USD=2129.94)
+T0279,A0032,3858.74,GBP,4900.60,2024-07-30,completed,true,HIGH_RISK_JURISDICTION,CP_076,SY,wire,EDD applied: enhanced verification complete
+T0026,A0085,39476.28,GBP,50134.87,2024-07-31,completed,false,AML_THRESHOLD,CP_005,AU,cash_deposit,AML-scenario tx (target USD=50134.87)
+T0126,A0045,9814.22,USD,9814.22,2024-07-31,completed,true,STRUCTURING,CP_088,GB,wire,Isolated near-threshold tx (not structuring)
+T0499,A0050,3582.20,USD,3582.20,2024-08-01,completed,true,,CP_059,US,wire,Normal compliant tx (negative class)
+T0065,A0005,7495.87,USD,7495.87,2024-08-02,completed,true,AML_THRESHOLD,CP_007,IT,transfer,AML-scenario tx (target USD=7495.87)
+T0206,A0039,6205.87,USD,6205.87,2024-08-03,completed,false,KYC_EXPIRED,CP_043,GB,wire,Tx after KYC expiry
+T0270,A0079,4249.15,USD,4249.15,2024-08-03,completed,false,HIGH_RISK_JURISDICTION,CP_073,VE,cash_deposit,no EDD applied
+T0367,A0080,11683.12,USD,11683.12,2024-08-04,completed,false,DORMANT_REACTIVATION,CP_071,AE,cash_withdrawal,Reactivation after long dormancy
+T0393,A0068,1574.80,GBP,2000.00,2024-08-04,completed,false,ROUND_NUMBER_ANOMALY,CP_041,JP,cash_withdrawal,Round-amount SB cluster (3/4)
+T0033,A0073,26508.53,USD,26508.53,2024-08-05,completed,false,AML_THRESHOLD,CP_087,US,wire,AML-scenario tx (target USD=26508.53)
+T0047,A0080,7906.44,USD,7906.44,2024-08-05,completed,true,AML_THRESHOLD,CP_037,FR,cash_withdrawal,AML-scenario tx (target USD=7906.44)
+T0071,A0091,229.94,EUR,248.34,2024-08-07,completed,true,AML_THRESHOLD,CP_044,IT,wire,AML-scenario tx (target USD=248.34)
+T0230,A0008,7347.61,USD,7347.61,2024-08-07,completed,true,KYC_EXPIRED,CP_088,GB,transfer,Tx within KYC validity window
+T0390,A0035,817.14,GBP,1037.77,2024-08-08,completed,true,DORMANT_REACTIVATION,CP_041,JP,cash_withdrawal,Tx within normal activity window
+T0110,A0057,9344.83,USD,9344.83,2024-08-09,completed,false,STRUCTURING,CP_057,ES,cash_deposit,Structuring cluster member (2/2)
+T0164,A0037,19196.36,USD,19196.36,2024-08-09,completed,false,SANCTIONS,CP_SAN_02,MM,cash_withdrawal,Sanctioned-CP tx
+T0277,A0096,15412.09,EUR,16645.06,2024-08-09,completed,true,HIGH_RISK_JURISDICTION,CP_015,IR,card_payment,EDD applied: enhanced verification complete
+T0380,A0004,2095.04,EUR,2262.64,2024-08-09,completed,true,DORMANT_REACTIVATION,CP_087,US,transfer,Tx within normal activity window
+T0394,A0068,2362.20,GBP,3000.00,2024-08-10,completed,false,ROUND_NUMBER_ANOMALY,CP_085,TR,cash_deposit,Round-amount SB cluster (4/4)
+T0456,A0020,4503.59,USD,4503.59,2024-08-10,completed,true,,CP_056,BR,transfer,Normal compliant tx (negative class)
+T0469,A0019,1493.10,USD,1493.10,2024-08-10,completed,true,,CP_089,JP,wire,Normal compliant tx (negative class)
+T0391,A0068,1574.80,GBP,2000.00,2024-08-11,completed,false,ROUND_NUMBER_ANOMALY,CP_086,IT,card_payment,Round-amount SB cluster (1/4)
+T0392,A0068,7874.02,GBP,10000.00,2024-08-11,completed,false,ROUND_NUMBER_ANOMALY,CP_028,KZ,wire,Round-amount SB cluster (2/4)
+T0141,A0079,9415.50,USD,9415.50,2024-08-12,completed,false,SANCTIONS,CP_SAN_03,MM,cash_withdrawal,Sanctioned-CP tx
+T0464,A0079,1595.58,USD,1595.58,2024-08-12,completed,true,,CP_037,FR,cash_deposit,Normal compliant tx (negative class)
+T0004,A0029,42314.15,EUR,45699.28,2024-08-13,completed,false,AML_THRESHOLD,CP_037,FR,cash_withdrawal,AML-scenario tx (target USD=45699.28)
+T0040,A0093,64134.53,USD,64134.53,2024-08-13,completed,false,AML_THRESHOLD,CP_067,CA,transfer,AML-scenario tx (target USD=64134.53)
+T0109,A0057,9215.35,USD,9215.35,2024-08-13,completed,false,STRUCTURING,CP_057,ES,wire,Structuring cluster member (1/2)
+T0173,A0068,2538.65,GBP,3224.08,2024-08-13,completed,true,SANCTIONS,CP_058,AU,transfer,Normal-CP tx in sanctions scenario
+T0248,A0087,3507.72,USD,3507.72,2024-08-13,completed,true,KYC_EXPIRED,CP_027,US,wire,Tx within KYC validity window
+T0330,A0065,1519.24,EUR,1640.78,2024-08-14,completed,true,VELOCITY,CP_032,JP,card_payment,Compliant low-velocity cluster (1/2)
+T0331,A0065,1088.96,EUR,1176.08,2024-08-14,completed,true,VELOCITY,CP_043,GB,cash_deposit,Compliant low-velocity cluster (2/2)
+T0454,A0024,4797.52,USD,4797.52,2024-08-14,completed,true,,CP_044,IT,cash_deposit,Normal compliant tx (negative class)
+T0038,A0089,74524.98,USD,74524.98,2024-08-15,completed,false,AML_THRESHOLD,CP_040,DE,wire,AML-scenario tx (target USD=74524.98)
+T0152,A0029,3977.93,EUR,4296.16,2024-08-15,completed,false,SANCTIONS,CP_SAN_03,MM,wire,Sanctioned-CP tx
+T0382,A0011,2773.95,GBP,3522.92,2024-08-15,completed,true,DORMANT_REACTIVATION,CP_085,TR,wire,Tx within normal activity window
+T0013,A0045,28384.53,USD,28384.53,2024-08-16,completed,false,AML_THRESHOLD,CP_001,GB,card_payment,AML-scenario tx (target USD=28384.53)
+T0035,A0070,68701.26,EUR,74197.36,2024-08-16,completed,false,AML_THRESHOLD,CP_048,AE,cash_withdrawal,AML-scenario tx (target USD=74197.36)
+T0257,A0069,6509286.36,KZT,14320.43,2024-08-16,completed,false,HIGH_RISK_JURISDICTION,CP_073,VE,cash_withdrawal,no EDD applied
+T0271,A0072,4884.91,USD,4884.91,2024-08-16,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,cash_deposit,no EDD applied
+T0477,A0016,824409.09,KZT,1813.70,2024-08-16,completed,true,,CP_043,GB,transfer,Normal compliant tx (negative class)
+T0232,A0096,2613.81,EUR,2822.91,2024-08-17,completed,true,KYC_EXPIRED,CP_074,AE,cash_withdrawal,Tx within KYC validity window
+T0196,A0004,5845.04,EUR,6312.64,2024-08-18,completed,false,KYC_EXPIRED,CP_044,IT,cash_withdrawal,Tx after KYC expiry
+T0123,A0068,7397.93,GBP,9395.37,2024-08-19,completed,true,STRUCTURING,CP_012,AE,cash_deposit,Isolated near-threshold tx (not structuring)
+T0150,A0066,876.53,EUR,946.65,2024-08-19,completed,false,SANCTIONS,CP_SAN_06,MM,transfer,Sanctioned-CP tx
+T0188,A0026,3741863.64,KZT,8232.10,2024-08-19,completed,true,SANCTIONS,CP_006,AU,card_payment,Normal-CP tx in sanctions scenario
+T0496,A0094,1374.04,USD,1374.04,2024-08-19,completed,true,,CP_022,CA,wire,Normal compliant tx (negative class)
+T0118,A0003,9920.24,USD,9920.24,2024-08-20,completed,true,STRUCTURING,CP_062,BR,card_payment,Isolated near-threshold tx (not structuring)
+T0430,A0078,3727.30,GBP,4733.67,2024-08-20,completed,true,,CP_071,AE,card_payment,Normal compliant tx (negative class)
+T0219,A0074,793.26,USD,793.26,2024-08-21,completed,false,KYC_EXPIRED,CP_079,RU,wire,Tx after KYC expiry
+T0077,A0070,7919.55,EUR,8553.11,2024-08-22,completed,true,AML_THRESHOLD,CP_011,AU,card_payment,AML-scenario tx (target USD=8553.11)
+T0130,A0083,9245.88,EUR,9985.55,2024-08-22,completed,true,STRUCTURING,CP_087,US,cash_deposit,Isolated near-threshold tx (not structuring)
+T0195,A0044,5227.46,USD,5227.46,2024-08-22,completed,false,KYC_EXPIRED,CP_026,AE,wire,Tx after KYC expiry
+T0457,A0019,733.67,USD,733.67,2024-08-22,completed,true,,CP_034,IT,transfer,Normal compliant tx (negative class)
+T0120,A0038,7405.22,GBP,9404.63,2024-08-23,completed,true,STRUCTURING,CP_017,IT,transfer,Isolated near-threshold tx (not structuring)
+T0401,A0047,10000.00,USD,10000.00,2024-08-23,completed,false,ROUND_NUMBER_ANOMALY,CP_026,AE,cash_withdrawal,Round-amount SB cluster (3/4)
+T0148,A0072,16265.58,USD,16265.58,2024-08-24,completed,false,SANCTIONS,CP_SAN_07,AF,transfer,Sanctioned-CP tx
+T0377,A0087,6787.83,USD,6787.83,2024-08-24,completed,true,DORMANT_REACTIVATION,CP_074,AE,wire,Tx within normal activity window
+T0253,A0006,3172.21,USD,3172.21,2024-08-25,completed,false,HIGH_RISK_JURISDICTION,CP_009,AF,cash_withdrawal,no EDD applied
+T0400,A0047,1000.00,USD,1000.00,2024-08-26,completed,false,ROUND_NUMBER_ANOMALY,CP_078,TR,card_payment,Round-amount SB cluster (2/4)
+T0395,A0070,4629.63,EUR,5000.00,2024-08-27,completed,false,ROUND_NUMBER_ANOMALY,CP_089,JP,cash_deposit,Round-amount SB cluster (1/4)
+T0402,A0047,2000.00,USD,2000.00,2024-08-27,completed,false,ROUND_NUMBER_ANOMALY,CP_060,JP,wire,Round-amount SB cluster (4/4)
+T0421,A0008,130.22,USD,130.22,2024-08-27,completed,true,,CP_017,IT,wire,Normal compliant tx (negative class)
+T0220,A0042,6012.06,EUR,6493.02,2024-08-28,completed,false,KYC_EXPIRED,CP_063,AU,transfer,Tx after KYC expiry
+T0396,A0070,2777.78,EUR,3000.00,2024-08-28,completed,false,ROUND_NUMBER_ANOMALY,CP_083,SG,cash_withdrawal,Round-amount SB cluster (2/4)
+T0399,A0047,5000.00,USD,5000.00,2024-08-29,completed,false,ROUND_NUMBER_ANOMALY,CP_038,DE,cash_deposit,Round-amount SB cluster (1/4)
+T0184,A0095,3768.53,USD,3768.53,2024-08-30,completed,true,SANCTIONS,CP_045,AU,card_payment,Normal-CP tx in sanctions scenario
+T0198,A0042,6418.57,EUR,6932.06,2024-08-30,completed,false,KYC_EXPIRED,CP_006,AU,card_payment,Tx after KYC expiry
+T0397,A0070,2777.78,EUR,3000.00,2024-08-31,completed,false,ROUND_NUMBER_ANOMALY,CP_025,NL,cash_deposit,Round-amount SB cluster (3/4)
+T0462,A0072,3261.02,USD,3261.02,2024-08-31,completed,true,,CP_087,US,wire,Normal compliant tx (negative class)
+T0061,A0070,8365.94,EUR,9035.22,2024-09-01,completed,true,AML_THRESHOLD,CP_060,JP,wire,AML-scenario tx (target USD=9035.22)
+T0121,A0080,9831.19,USD,9831.19,2024-09-01,completed,true,STRUCTURING,CP_062,BR,wire,Isolated near-threshold tx (not structuring)
+T0398,A0070,2777.78,EUR,3000.00,2024-09-01,completed,false,ROUND_NUMBER_ANOMALY,CP_087,US,card_payment,Round-amount SB cluster (4/4)
+T0046,A0019,8338.73,USD,8338.73,2024-09-02,completed,true,AML_THRESHOLD,CP_074,AE,card_payment,AML-scenario tx (target USD=8338.73)
+T0156,A0022,1570.46,USD,1570.46,2024-09-02,completed,false,SANCTIONS,CP_SAN_08,KP,transfer,Sanctioned-CP tx
+T0251,A0048,11377.72,USD,11377.72,2024-09-02,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,transfer,no EDD applied
+T0051,A0041,573513.64,KZT,1261.73,2024-09-03,completed,true,AML_THRESHOLD,CP_072,KZ,cash_deposit,AML-scenario tx (target USD=1261.73)
+T0060,A0064,377.34,EUR,407.53,2024-09-03,completed,true,AML_THRESHOLD,CP_038,DE,transfer,AML-scenario tx (target USD=407.53)
+T0193,A0035,5201.13,GBP,6605.44,2024-09-03,completed,false,KYC_EXPIRED,CP_067,CA,card_payment,Tx after KYC expiry
+T0236,A0055,1329.20,USD,1329.20,2024-09-03,completed,true,KYC_EXPIRED,CP_055,AU,card_payment,Tx within KYC validity window
+T0029,A0052,29068.91,USD,29068.91,2024-09-04,completed,false,AML_THRESHOLD,CP_008,TR,cash_withdrawal,AML-scenario tx (target USD=29068.91)
+T0052,A0090,7830.72,USD,7830.72,2024-09-04,completed,true,AML_THRESHOLD,CP_052,KZ,wire,AML-scenario tx (target USD=7830.72)
+T0181,A0006,9978.59,USD,9978.59,2024-09-04,completed,true,SANCTIONS,CP_087,US,cash_deposit,Normal-CP tx in sanctions scenario
+T0204,A0035,7101.53,GBP,9018.94,2024-09-04,completed,false,KYC_EXPIRED,CP_061,NL,cash_withdrawal,Tx after KYC expiry
+T0470,A0099,1241.90,USD,1241.90,2024-09-04,completed,true,,CP_050,KZ,transfer,Normal compliant tx (negative class)
+T0338,A0039,1521.11,USD,1521.11,2024-09-05,completed,true,VELOCITY,CP_026,AE,cash_withdrawal,Compliant low-velocity cluster (1/2)
+T0339,A0039,1706.21,USD,1706.21,2024-09-05,completed,true,VELOCITY,CP_033,JP,cash_deposit,Compliant low-velocity cluster (2/2)
+T0381,A0046,6277.41,USD,6277.41,2024-09-05,completed,true,DORMANT_REACTIVATION,CP_075,PL,cash_withdrawal,Tx within normal activity window
+T0031,A0024,15132.94,USD,15132.94,2024-09-06,completed,false,AML_THRESHOLD,CP_025,NL,card_payment,AML-scenario tx (target USD=15132.94)
+T0115,A0064,8495.85,EUR,9175.52,2024-09-06,completed,true,STRUCTURING,CP_059,US,card_payment,Isolated near-threshold tx (not structuring)
+T0357,A0043,7946609.09,KZT,17482.54,2024-09-06,completed,false,DORMANT_REACTIVATION,CP_032,JP,cash_deposit,Reactivation after long dormancy
+T0383,A0035,2474.58,GBP,3142.72,2024-09-06,completed,true,DORMANT_REACTIVATION,CP_022,CA,cash_withdrawal,Tx within normal activity window
+T0010,A0034,45832.23,USD,45832.23,2024-09-07,completed,false,AML_THRESHOLD,CP_062,BR,transfer,AML-scenario tx (target USD=45832.23)
+T0167,A0051,7607.92,GBP,9662.06,2024-09-07,completed,false,SANCTIONS,CP_SAN_09,KP,wire,Sanctioned-CP tx
+T0192,A0065,7879.25,EUR,8509.59,2024-09-07,completed,false,KYC_EXPIRED,CP_060,JP,cash_deposit,Tx after KYC expiry
+T0292,A0062,633.19,USD,633.19,2024-09-07,completed,true,HIGH_RISK_JURISDICTION,CP_015,IR,transfer,EDD applied: enhanced verification complete
+T0180,A0065,13034.00,EUR,14076.72,2024-09-08,completed,true,SANCTIONS,CP_068,IT,cash_withdrawal,Normal-CP tx in sanctions scenario
+T0207,A0002,4436.12,EUR,4791.01,2024-09-08,completed,false,KYC_EXPIRED,CP_026,AE,card_payment,Tx after KYC expiry
+T0255,A0042,6214.20,EUR,6711.34,2024-09-09,completed,false,HIGH_RISK_JURISDICTION,CP_076,SY,card_payment,no EDD applied
+T0050,A0087,948.85,USD,948.85,2024-09-10,completed,true,AML_THRESHOLD,CP_050,KZ,wire,AML-scenario tx (target USD=948.85)
+T0368,A0011,15059.09,GBP,19125.05,2024-09-12,completed,false,DORMANT_REACTIVATION,CP_051,TR,transfer,Reactivation after long dormancy
+T0082,A0058,9415.57,USD,9415.57,2024-09-14,completed,false,STRUCTURING,CP_032,JP,cash_deposit,Structuring cluster member (2/5)
+T0085,A0058,9067.07,USD,9067.07,2024-09-14,completed,false,STRUCTURING,CP_032,JP,wire,Structuring cluster member (5/5)
+T0388,A0002,1129.58,EUR,1219.95,2024-09-14,completed,true,DORMANT_REACTIVATION,CP_040,DE,card_payment,Tx within normal activity window
+T0084,A0058,9373.93,USD,9373.93,2024-09-15,completed,false,STRUCTURING,CP_032,JP,cash_withdrawal,Structuring cluster member (4/5)
+T0166,A0058,23296.56,USD,23296.56,2024-09-15,completed,false,SANCTIONS,CP_SAN_06,MM,wire,Sanctioned-CP tx
+T0174,A0039,1669.86,USD,1669.86,2024-09-16,completed,true,SANCTIONS,CP_018,AU,card_payment,Normal-CP tx in sanctions scenario
+T0239,A0048,8223.14,USD,8223.14,2024-09-16,completed,true,KYC_EXPIRED,CP_053,CA,transfer,Tx within KYC validity window
+T0264,A0025,9100.25,USD,9100.25,2024-09-16,completed,false,HIGH_RISK_JURISDICTION,CP_009,AF,transfer,no EDD applied
+T0081,A0058,9338.59,USD,9338.59,2024-09-17,completed,false,STRUCTURING,CP_032,JP,cash_withdrawal,Structuring cluster member (1/5)
+T0447,A0070,1006.00,EUR,1086.48,2024-09-17,completed,true,,CP_074,AE,wire,Normal compliant tx (negative class)
+T0463,A0084,492277.27,KZT,1083.01,2024-09-18,completed,true,,CP_054,AE,transfer,Normal compliant tx (negative class)
+T0468,A0072,4860.17,USD,4860.17,2024-09-18,completed,true,,CP_001,GB,transfer,Normal compliant tx (negative class)
+T0080,A0048,4852.18,USD,4852.18,2024-09-19,completed,true,AML_THRESHOLD,CP_062,BR,wire,AML-scenario tx (target USD=4852.18)
+T0083,A0058,9426.34,USD,9426.34,2024-09-19,completed,false,STRUCTURING,CP_032,JP,cash_deposit,Structuring cluster member (3/5)
+T0191,A0037,7613.82,USD,7613.82,2024-09-20,completed,false,KYC_EXPIRED,CP_018,AU,cash_withdrawal,Tx after KYC expiry
+T0371,A0011,1330.79,GBP,1690.10,2024-09-20,completed,true,DORMANT_REACTIVATION,CP_067,CA,wire,Tx within normal activity window
+T0131,A0020,9068.22,USD,9068.22,2024-09-22,completed,true,STRUCTURING,CP_060,JP,cash_deposit,Isolated near-threshold tx (not structuring)
+T0197,A0044,1666.46,USD,1666.46,2024-09-22,completed,false,KYC_EXPIRED,CP_058,AU,cash_deposit,Tx after KYC expiry
+T0276,A0038,5711.88,GBP,7254.09,2024-09-22,completed,true,HIGH_RISK_JURISDICTION,CP_009,AF,cash_deposit,EDD applied: enhanced verification complete
+T0441,A0064,1896.56,EUR,2048.28,2024-09-22,completed,true,,CP_066,PL,cash_withdrawal,Normal compliant tx (negative class)
+T0129,A0060,9759.12,USD,9759.12,2024-09-23,completed,true,STRUCTURING,CP_078,TR,card_payment,Isolated near-threshold tx (not structuring)
+T0315,A0074,782.51,USD,782.51,2024-09-23,completed,false,VELOCITY,CP_052,KZ,card_payment,Velocity burst tx (1/11)
+T0316,A0074,1324.39,USD,1324.39,2024-09-23,completed,false,VELOCITY,CP_020,GB,cash_deposit,Velocity burst tx (2/11)
+T0317,A0074,398.02,USD,398.02,2024-09-23,completed,false,VELOCITY,CP_018,AU,card_payment,Velocity burst tx (3/11)
+T0318,A0074,1081.24,USD,1081.24,2024-09-23,completed,false,VELOCITY,CP_054,AE,transfer,Velocity burst tx (4/11)
+T0319,A0074,1524.55,USD,1524.55,2024-09-23,completed,false,VELOCITY,CP_001,GB,cash_deposit,Velocity burst tx (5/11)
+T0320,A0074,1363.32,USD,1363.32,2024-09-23,completed,false,VELOCITY,CP_063,AU,card_payment,Velocity burst tx (6/11)
+T0321,A0074,1087.27,USD,1087.27,2024-09-23,completed,false,VELOCITY,CP_058,AU,transfer,Velocity burst tx (7/11)
+T0322,A0074,948.22,USD,948.22,2024-09-23,completed,false,VELOCITY,CP_034,IT,transfer,Velocity burst tx (8/11)
+T0323,A0074,417.54,USD,417.54,2024-09-23,completed,false,VELOCITY,CP_038,DE,wire,Velocity burst tx (9/11)
+T0324,A0074,1628.48,USD,1628.48,2024-09-23,completed,false,VELOCITY,CP_005,AU,cash_withdrawal,Velocity burst tx (10/11)
+T0325,A0074,1543.80,USD,1543.80,2024-09-23,completed,false,VELOCITY,CP_084,NL,wire,Velocity burst tx (11/11)
+T0414,A0075,1000.00,USD,1000.00,2024-09-23,completed,true,ROUND_NUMBER_ANOMALY,CP_079,RU,cash_deposit,Isolated round-amount tx (not SB cluster)
+T0210,A0004,7515.34,EUR,8116.57,2024-09-24,completed,false,KYC_EXPIRED,CP_020,GB,transfer,Tx after KYC expiry
+T0438,A0020,1555.15,USD,1555.15,2024-09-24,completed,true,,CP_026,AE,card_payment,Normal compliant tx (negative class)
+T0021,A0015,7491481.82,KZT,16481.26,2024-09-25,completed,false,AML_THRESHOLD,CP_060,JP,wire,AML-scenario tx (target USD=16481.26)
+T0057,A0033,1375.24,USD,1375.24,2024-09-25,completed,true,AML_THRESHOLD,CP_072,KZ,cash_deposit,AML-scenario tx (target USD=1375.24)
+T0418,A0045,2000.00,USD,2000.00,2024-09-25,completed,true,ROUND_NUMBER_ANOMALY,CP_042,DE,transfer,Isolated round-amount tx (not SB cluster)
+T0268,A0049,19155.37,USD,19155.37,2024-09-26,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,card_payment,no EDD applied
+T0288,A0025,3668.64,USD,3668.64,2024-09-26,completed,true,HIGH_RISK_JURISDICTION,CP_045,AU,cash_deposit,Normal-jurisdiction tx
+T0234,A0023,3710.04,EUR,4006.84,2024-09-27,completed,true,KYC_EXPIRED,CP_060,JP,transfer,Tx within KYC validity window
+T0423,A0053,1654.08,GBP,2100.68,2024-09-27,completed,true,,CP_077,AE,transfer,Normal compliant tx (negative class)
+T0048,A0048,7659.79,USD,7659.79,2024-09-28,completed,true,AML_THRESHOLD,CP_046,PL,wire,AML-scenario tx (target USD=7659.79)
+T0216,A0038,4314.50,GBP,5479.41,2024-09-28,completed,false,KYC_EXPIRED,CP_075,PL,card_payment,Tx after KYC expiry
+T0237,A0087,3099.69,USD,3099.69,2024-09-28,completed,true,KYC_EXPIRED,CP_016,GB,wire,Tx within KYC validity window
+T0287,A0068,13461.15,GBP,17095.66,2024-09-28,completed,true,HIGH_RISK_JURISDICTION,CP_015,IR,cash_deposit,EDD applied: enhanced verification complete
+T0353,A0066,23213.35,EUR,25070.42,2024-09-28,completed,false,DORMANT_REACTIVATION,CP_067,CA,cash_withdrawal,Reactivation after long dormancy
+T0170,A0090,19091.61,USD,19091.61,2024-09-29,completed,false,SANCTIONS,CP_SAN_03,MM,cash_withdrawal,Sanctioned-CP tx
+T0137,A0084,4236913.64,KZT,9321.21,2024-09-30,completed,true,STRUCTURING,CP_027,US,card_payment,Isolated near-threshold tx (not structuring)
+T0281,A0001,7809.91,EUR,8434.70,2024-09-30,completed,true,HIGH_RISK_JURISDICTION,CP_023,DE,cash_withdrawal,Normal-jurisdiction tx
+T0370,A0049,20918.70,USD,20918.70,2024-09-30,completed,false,DORMANT_REACTIVATION,CP_075,PL,transfer,Reactivation after long dormancy
+T0419,A0067,2000.00,USD,2000.00,2024-09-30,completed,true,ROUND_NUMBER_ANOMALY,CP_065,IT,wire,Isolated round-amount tx (not SB cluster)
+T0267,A0072,19963.40,USD,19963.40,2024-10-01,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,card_payment,no EDD applied
+T0475,A0018,3406.87,USD,3406.87,2024-10-01,completed,true,,CP_058,AU,wire,Normal compliant tx (negative class)
+T0009,A0081,37006.87,USD,37006.87,2024-10-02,completed,false,AML_THRESHOLD,CP_037,FR,cash_withdrawal,AML-scenario tx (target USD=37006.87)
+T0162,A0018,1778.41,USD,1778.41,2024-10-02,completed,false,SANCTIONS,CP_SAN_05,BY,cash_deposit,Sanctioned-CP tx
+T0416,A0020,1000.00,USD,1000.00,2024-10-02,completed,true,ROUND_NUMBER_ANOMALY,CP_048,AE,wire,Isolated round-amount tx (not SB cluster)
+T0151,A0028,23717.87,USD,23717.87,2024-10-03,completed,false,SANCTIONS,CP_SAN_06,MM,transfer,Sanctioned-CP tx
+T0436,A0089,2084.43,USD,2084.43,2024-10-03,completed,true,,CP_053,CA,card_payment,Normal compliant tx (negative class)
+T0439,A0009,4664.99,USD,4664.99,2024-10-03,completed,true,,CP_049,AE,transfer,Normal compliant tx (negative class)
+T0465,A0086,657.30,USD,657.30,2024-10-03,completed,true,,CP_079,RU,cash_deposit,Normal compliant tx (negative class)
+T0059,A0067,1030.80,USD,1030.80,2024-10-04,completed,true,AML_THRESHOLD,CP_089,JP,card_payment,AML-scenario tx (target USD=1030.80)
+T0209,A0036,2784.42,USD,2784.42,2024-10-04,completed,false,KYC_EXPIRED,CP_084,NL,transfer,Tx after KYC expiry
+T0272,A0091,12925.63,EUR,13959.68,2024-10-04,completed,false,HIGH_RISK_JURISDICTION,CP_015,IR,cash_deposit,no EDD applied
+T0437,A0098,2727.97,USD,2727.97,2024-10-04,completed,true,,CP_025,NL,cash_deposit,Normal compliant tx (negative class)
+T0215,A0066,2153.07,EUR,2325.32,2024-10-05,completed,false,KYC_EXPIRED,CP_020,GB,wire,Tx after KYC expiry
+T0244,A0056,532.48,EUR,575.08,2024-10-05,completed,true,KYC_EXPIRED,CP_007,IT,card_payment,Tx within KYC validity window
+T0008,A0018,64089.31,USD,64089.31,2024-10-06,completed,false,AML_THRESHOLD,CP_088,GB,cash_deposit,AML-scenario tx (target USD=64089.31)
+T0175,A0059,3216.02,USD,3216.02,2024-10-06,completed,true,SANCTIONS,CP_010,KZ,card_payment,Normal-CP tx in sanctions scenario
+T0488,A0079,570.19,USD,570.19,2024-10-06,completed,true,,CP_053,CA,card_payment,Normal compliant tx (negative class)
+T0160,A0060,19564.04,USD,19564.04,2024-10-07,completed,false,SANCTIONS,CP_SAN_05,BY,card_payment,Sanctioned-CP tx
+T0252,A0026,4739950.00,KZT,10427.89,2024-10-07,completed,false,HIGH_RISK_JURISDICTION,CP_076,SY,wire,no EDD applied
+T0494,A0080,3087.42,USD,3087.42,2024-10-07,completed,true,,CP_039,JP,cash_withdrawal,Normal compliant tx (negative class)
+T0132,A0036,9056.12,USD,9056.12,2024-10-08,completed,true,STRUCTURING,CP_081,FR,wire,Isolated near-threshold tx (not structuring)
+T0256,A0095,12077.63,USD,12077.63,2024-10-08,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,card_payment,no EDD applied
+T0440,A0027,4373.60,EUR,4723.49,2024-10-08,completed,true,,CP_053,CA,cash_withdrawal,Normal compliant tx (negative class)
+T0486,A0049,2546.62,USD,2546.62,2024-10-09,completed,true,,CP_029,KZ,transfer,Normal compliant tx (negative class)
+T0073,A0076,7413.36,USD,7413.36,2024-10-10,completed,true,AML_THRESHOLD,CP_061,NL,card_payment,AML-scenario tx (target USD=7413.36)
+T0200,A0004,3628.13,EUR,3918.38,2024-10-10,completed,false,KYC_EXPIRED,CP_087,US,transfer,Tx after KYC expiry
+T0241,A0027,4429.35,EUR,4783.70,2024-10-10,completed,true,KYC_EXPIRED,CP_023,DE,cash_withdrawal,Tx within KYC validity window
+T0254,A0067,3404.34,USD,3404.34,2024-10-10,completed,false,HIGH_RISK_JURISDICTION,CP_073,VE,transfer,no EDD applied
+T0386,A0072,723.23,USD,723.23,2024-10-10,completed,true,DORMANT_REACTIVATION,CP_077,AE,cash_deposit,Tx within normal activity window
+T0455,A0089,4667.70,USD,4667.70,2024-10-10,completed,true,,CP_037,FR,wire,Normal compliant tx (negative class)
+T0002,A0073,13523.27,USD,13523.27,2024-10-11,completed,false,AML_THRESHOLD,CP_056,BR,cash_deposit,AML-scenario tx (target USD=13523.27)
+T0163,A0071,16601.22,EUR,17929.32,2024-10-11,completed,false,SANCTIONS,CP_SAN_02,MM,wire,Sanctioned-CP tx
+T0224,A0031,9006.34,USD,9006.34,2024-10-11,completed,true,KYC_EXPIRED,CP_048,AE,cash_deposit,Tx within KYC validity window
+T0266,A0061,14262.62,USD,14262.62,2024-10-11,completed,false,HIGH_RISK_JURISDICTION,CP_009,AF,transfer,no EDD applied
+T0413,A0029,4629.63,EUR,5000.00,2024-10-11,completed,true,ROUND_NUMBER_ANOMALY,CP_069,FR,card_payment,Isolated round-amount tx (not SB cluster)
+T0389,A0032,2941.91,GBP,3736.22,2024-10-12,completed,true,DORMANT_REACTIVATION,CP_079,RU,transfer,Tx within normal activity window
+T0140,A0032,7866.14,GBP,9990.00,2024-10-13,completed,true,STRUCTURING,CP_060,JP,card_payment,Isolated near-threshold tx (not structuring)
+T0153,A0065,19407.81,EUR,20960.44,2024-10-13,completed,false,SANCTIONS,CP_SAN_09,KP,wire,Sanctioned-CP tx
+T0179,A0068,1699.32,GBP,2158.14,2024-10-13,completed,true,SANCTIONS,CP_050,KZ,card_payment,Normal-CP tx in sanctions scenario
+T0360,A0083,24052.51,EUR,25976.71,2024-10-13,completed,false,DORMANT_REACTIVATION,CP_008,TR,wire,Reactivation after long dormancy
+T0205,A0066,5087.83,EUR,5494.86,2024-10-14,completed,false,KYC_EXPIRED,CP_011,AU,cash_deposit,Tx after KYC expiry
+T0226,A0019,2946.55,USD,2946.55,2024-10-15,completed,true,KYC_EXPIRED,CP_086,IT,wire,Tx within KYC validity window
+T0406,A0062,2000.00,USD,2000.00,2024-10-15,completed,true,ROUND_NUMBER_ANOMALY,CP_080,GB,card_payment,Isolated round-amount tx (not SB cluster)
+T0365,A0093,5428.56,USD,5428.56,2024-10-16,completed,false,DORMANT_REACTIVATION,CP_038,DE,cash_withdrawal,Reactivation after long dormancy
+T0428,A0089,3921.57,USD,3921.57,2024-10-16,completed,true,,CP_016,GB,transfer,Normal compliant tx (negative class)
+T0443,A0048,1361.28,USD,1361.28,2024-10-16,completed,true,,CP_005,AU,cash_deposit,Normal compliant tx (negative class)
+T0495,A0068,332.48,GBP,422.25,2024-10-16,completed,true,,CP_055,AU,card_payment,Normal compliant tx (negative class)
+T0274,A0037,11682.80,USD,11682.80,2024-10-18,completed,false,HIGH_RISK_JURISDICTION,CP_009,AF,cash_withdrawal,no EDD applied
+T0212,A0058,6769.68,USD,6769.68,2024-10-19,completed,false,KYC_EXPIRED,CP_048,AE,card_payment,Tx after KYC expiry
+T0249,A0061,4333.33,USD,4333.33,2024-10-19,completed,true,KYC_EXPIRED,CP_068,IT,cash_deposit,Tx within KYC validity window
+T0015,A0084,14742300.00,KZT,32433.06,2024-10-20,completed,false,AML_THRESHOLD,CP_065,IT,card_payment,AML-scenario tx (target USD=32433.06)
+T0225,A0013,1945.24,USD,1945.24,2024-10-20,completed,true,KYC_EXPIRED,CP_035,AU,cash_deposit,Tx within KYC validity window
+T0351,A0051,19203.03,GBP,24387.85,2024-10-20,completed,false,DORMANT_REACTIVATION,CP_033,JP,cash_withdrawal,Reactivation after long dormancy
+T0364,A0001,4903.95,EUR,5296.27,2024-10-20,completed,false,DORMANT_REACTIVATION,CP_072,KZ,card_payment,Reactivation after long dormancy
+T0422,A0024,2538.05,USD,2538.05,2024-10-20,completed,true,,CP_034,IT,transfer,Normal compliant tx (negative class)
+T0484,A0046,431.13,USD,431.13,2024-10-20,completed,true,,CP_088,GB,card_payment,Normal compliant tx (negative class)
+T0053,A0032,263.96,GBP,335.23,2024-10-22,completed,true,AML_THRESHOLD,CP_064,US,cash_deposit,AML-scenario tx (target USD=335.23)
+T0030,A0021,20239004.55,KZT,44525.81,2024-10-23,completed,false,AML_THRESHOLD,CP_034,IT,transfer,AML-scenario tx (target USD=44525.81)
+T0300,A0058,2023.00,USD,2023.00,2024-10-23,completed,true,HIGH_RISK_JURISDICTION,CP_050,KZ,wire,Normal-jurisdiction tx
+T0289,A0092,15919.97,USD,15919.97,2024-10-24,completed,true,HIGH_RISK_JURISDICTION,CP_047,MM,transfer,EDD applied: enhanced verification complete
+T0490,A0051,1502.18,GBP,1907.77,2024-10-24,completed,true,,CP_019,JP,cash_withdrawal,Normal compliant tx (negative class)
+T0037,A0077,25418.37,USD,25418.37,2024-10-25,completed,false,AML_THRESHOLD,CP_016,GB,cash_deposit,AML-scenario tx (target USD=25418.37)
+T0159,A0025,17118.52,USD,17118.52,2024-10-25,completed,false,SANCTIONS,CP_SAN_06,MM,cash_withdrawal,Sanctioned-CP tx
+T0176,A0069,7264954.55,KZT,15982.90,2024-10-26,completed,true,SANCTIONS,CP_003,CA,transfer,Normal-CP tx in sanctions scenario
+T0098,A0098,9028.92,USD,9028.92,2024-10-27,completed,false,STRUCTURING,CP_038,DE,cash_deposit,Structuring cluster member (5/5)
+T0135,A0077,9384.10,USD,9384.10,2024-10-27,completed,true,STRUCTURING,CP_068,IT,card_payment,Isolated near-threshold tx (not structuring)
+T0227,A0080,1685.18,USD,1685.18,2024-10-27,completed,true,KYC_EXPIRED,CP_088,GB,transfer,Tx within KYC validity window
+T0094,A0098,9225.93,USD,9225.93,2024-10-28,completed,false,STRUCTURING,CP_038,DE,card_payment,Structuring cluster member (1/5)
+T0261,A0074,14567.30,USD,14567.30,2024-10-28,completed,false,HIGH_RISK_JURISDICTION,CP_015,IR,cash_withdrawal,no EDD applied
+T0095,A0098,9973.57,USD,9973.57,2024-10-29,completed,false,STRUCTURING,CP_038,DE,card_payment,Structuring cluster member (2/5)
+T0096,A0098,9674.30,USD,9674.30,2024-10-29,completed,false,STRUCTURING,CP_038,DE,wire,Structuring cluster member (3/5)
+T0122,A0056,8558.40,EUR,9243.07,2024-10-29,completed,true,STRUCTURING,CP_016,GB,cash_withdrawal,Isolated near-threshold tx (not structuring)
+T0278,A0090,12505.70,USD,12505.70,2024-10-29,completed,true,HIGH_RISK_JURISDICTION,CP_009,AF,transfer,EDD applied: enhanced verification complete
+T0347,A0098,473.18,USD,473.18,2024-10-29,completed,true,VELOCITY,CP_077,AE,transfer,Compliant low-velocity cluster (1/2)
+T0348,A0098,641.22,USD,641.22,2024-10-29,completed,true,VELOCITY,CP_045,AU,wire,Compliant low-velocity cluster (2/2)
+T0375,A0003,7475.87,USD,7475.87,2024-10-29,completed,true,DORMANT_REACTIVATION,CP_029,KZ,cash_withdrawal,Tx within normal activity window
+T0415,A0051,3937.01,GBP,5000.00,2024-10-29,completed,true,ROUND_NUMBER_ANOMALY,CP_063,AU,card_payment,Isolated round-amount tx (not SB cluster)
+T0482,A0015,1678150.00,KZT,3691.93,2024-10-29,completed,true,,CP_020,GB,cash_withdrawal,Normal compliant tx (negative class)
+T0020,A0079,18206.01,USD,18206.01,2024-10-30,completed,false,AML_THRESHOLD,CP_005,AU,cash_deposit,AML-scenario tx (target USD=18206.01)
+T0097,A0098,9608.39,USD,9608.39,2024-10-30,completed,false,STRUCTURING,CP_038,DE,cash_deposit,Structuring cluster member (4/5)
+T0473,A0030,400.34,USD,400.34,2024-10-30,completed,true,,CP_065,IT,transfer,Normal compliant tx (negative class)
+T0079,A0086,3680.50,USD,3680.50,2024-10-31,completed,true,AML_THRESHOLD,CP_044,IT,card_payment,AML-scenario tx (target USD=3680.50)
+T0387,A0071,1534.51,EUR,1657.27,2024-10-31,completed,true,DORMANT_REACTIVATION,CP_013,CA,cash_withdrawal,Tx within normal activity window
+T0435,A0021,870772.73,KZT,1915.70,2024-10-31,completed,true,,CP_069,FR,transfer,Normal compliant tx (negative class)
+T0453,A0088,2423.64,EUR,2617.53,2024-10-31,completed,true,,CP_048,AE,card_payment,Normal compliant tx (negative class)
+T0112,A0006,9394.87,USD,9394.87,2024-11-01,completed,true,STRUCTURING,CP_031,GB,wire,Isolated near-threshold tx (not structuring)
+T0127,A0019,9197.07,USD,9197.07,2024-11-02,completed,true,STRUCTURING,CP_035,AU,transfer,Isolated near-threshold tx (not structuring)
+T0228,A0024,5970.10,USD,5970.10,2024-11-02,completed,true,KYC_EXPIRED,CP_090,DE,cash_deposit,Tx within KYC validity window
+T0297,A0018,15080.83,USD,15080.83,2024-11-03,completed,true,HIGH_RISK_JURISDICTION,CP_073,VE,cash_deposit,EDD applied: enhanced verification complete
+T0479,A0011,2180.20,GBP,2768.86,2024-11-04,completed,true,,CP_071,AE,transfer,Normal compliant tx (negative class)
+T0074,A0016,2198218.18,KZT,4836.08,2024-11-05,completed,true,AML_THRESHOLD,CP_061,NL,wire,AML-scenario tx (target USD=4836.08)
+T0154,A0085,17300.49,GBP,21971.62,2024-11-06,completed,false,SANCTIONS,CP_SAN_06,MM,transfer,Sanctioned-CP tx
+T0262,A0022,12765.99,USD,12765.99,2024-11-06,completed,false,HIGH_RISK_JURISDICTION,CP_076,SY,cash_withdrawal,no EDD applied
+T0078,A0021,584636.36,KZT,1286.20,2024-11-07,completed,true,AML_THRESHOLD,CP_010,KZ,card_payment,AML-scenario tx (target USD=1286.20)
+T0480,A0070,3282.84,EUR,3545.47,2024-11-08,completed,true,,CP_048,AE,transfer,Normal compliant tx (negative class)
+T0005,A0078,9351.58,GBP,11876.51,2024-11-09,completed,false,AML_THRESHOLD,CP_018,AU,card_payment,AML-scenario tx (target USD=11876.51)
+T0458,A0062,713.80,USD,713.80,2024-11-09,completed,true,,CP_066,PL,cash_deposit,Normal compliant tx (negative class)
+T0054,A0094,6187.93,USD,6187.93,2024-11-10,completed,true,AML_THRESHOLD,CP_031,GB,cash_withdrawal,AML-scenario tx (target USD=6187.93)
+T0064,A0014,2093.79,USD,2093.79,2024-11-11,completed,true,AML_THRESHOLD,CP_090,DE,card_payment,AML-scenario tx (target USD=2093.79)
+T0119,A0055,9404.02,USD,9404.02,2024-11-11,completed,true,STRUCTURING,CP_079,RU,cash_withdrawal,Isolated near-threshold tx (not structuring)
+T0363,A0008,21482.11,USD,21482.11,2024-11-11,completed,false,DORMANT_REACTIVATION,CP_085,TR,wire,Reactivation after long dormancy
+T0408,A0090,5000.00,USD,5000.00,2024-11-11,completed,true,ROUND_NUMBER_ANOMALY,CP_072,KZ,wire,Isolated round-amount tx (not SB cluster)
+T0424,A0063,418236.36,KZT,920.12,2024-11-11,completed,true,,CP_086,IT,cash_withdrawal,Normal compliant tx (negative class)
+T0286,A0073,6048.95,USD,6048.95,2024-11-12,completed,true,HIGH_RISK_JURISDICTION,CP_045,AU,card_payment,Normal-jurisdiction tx
+T0062,A0059,8575.94,USD,8575.94,2024-11-13,completed,true,AML_THRESHOLD,CP_074,AE,cash_deposit,AML-scenario tx (target USD=8575.94)
+T0282,A0084,3073986.36,KZT,6762.77,2024-11-13,completed,true,HIGH_RISK_JURISDICTION,CP_047,MM,wire,EDD applied: enhanced verification complete
+T0019,A0061,61505.59,USD,61505.59,2024-11-14,completed,false,AML_THRESHOLD,CP_090,DE,transfer,AML-scenario tx (target USD=61505.59)
+T0352,A0060,12710.56,USD,12710.56,2024-11-14,completed,false,DORMANT_REACTIVATION,CP_072,KZ,cash_deposit,Reactivation after long dormancy
+T0260,A0077,5677.84,USD,5677.84,2024-11-15,completed,false,HIGH_RISK_JURISDICTION,CP_073,VE,card_payment,no EDD applied
+T0369,A0039,7337.51,USD,7337.51,2024-11-15,completed,false,DORMANT_REACTIVATION,CP_012,AE,cash_withdrawal,Reactivation after long dormancy
+T0144,A0037,18231.47,USD,18231.47,2024-11-16,completed,false,SANCTIONS,CP_SAN_05,BY,card_payment,Sanctioned-CP tx
+T0374,A0070,7772.69,EUR,8394.51,2024-11-16,completed,true,DORMANT_REACTIVATION,CP_078,TR,cash_deposit,Tx within normal activity window
+T0145,A0020,2496.80,USD,2496.80,2024-11-17,completed,false,SANCTIONS,CP_SAN_06,MM,transfer,Sanctioned-CP tx
+T0111,A0087,9486.15,USD,9486.15,2024-11-18,completed,true,STRUCTURING,CP_081,FR,cash_deposit,Isolated near-threshold tx (not structuring)
+T0409,A0014,5000.00,USD,5000.00,2024-11-18,completed,true,ROUND_NUMBER_ANOMALY,CP_034,IT,cash_deposit,Isolated round-amount tx (not SB cluster)
+T0149,A0086,2789.60,USD,2789.60,2024-11-19,completed,false,SANCTIONS,CP_SAN_09,KP,cash_withdrawal,Sanctioned-CP tx
+T0024,A0099,65364.74,USD,65364.74,2024-11-20,completed,false,AML_THRESHOLD,CP_012,AE,card_payment,AML-scenario tx (target USD=65364.74)
+T0143,A0009,2815.40,USD,2815.40,2024-11-21,completed,false,SANCTIONS,CP_SAN_06,MM,cash_withdrawal,Sanctioned-CP tx
+T0201,A0002,7479.16,EUR,8077.49,2024-11-21,completed,false,KYC_EXPIRED,CP_021,JP,cash_withdrawal,Tx after KYC expiry
+T0478,A0060,3150.89,USD,3150.89,2024-11-21,completed,true,,CP_020,GB,transfer,Normal compliant tx (negative class)
+T0404,A0069,1363636.36,KZT,3000.00,2024-11-22,completed,false,ROUND_NUMBER_ANOMALY,CP_090,DE,cash_withdrawal,Round-amount SB cluster (2/3)
+T0039,A0062,10526.37,USD,10526.37,2024-11-23,completed,false,AML_THRESHOLD,CP_038,DE,wire,AML-scenario tx (target USD=10526.37)
+T0403,A0069,2272727.27,KZT,5000.00,2024-11-24,completed,false,ROUND_NUMBER_ANOMALY,CP_020,GB,transfer,Round-amount SB cluster (1/3)
+T0485,A0092,1410.41,USD,1410.41,2024-11-24,completed,true,,CP_083,SG,wire,Normal compliant tx (negative class)
+T0023,A0076,32006.48,USD,32006.48,2024-11-25,completed,false,AML_THRESHOLD,CP_036,PL,cash_withdrawal,AML-scenario tx (target USD=32006.48)
+T0460,A0063,1672290.91,KZT,3679.04,2024-11-25,completed,true,,CP_069,FR,cash_deposit,Normal compliant tx (negative class)
+T0146,A0045,24208.56,USD,24208.56,2024-11-26,completed,false,SANCTIONS,CP_SAN_05,BY,cash_withdrawal,Sanctioned-CP tx
+T0474,A0082,65.32,USD,65.32,2024-11-26,completed,true,,CP_060,JP,cash_deposit,Normal compliant tx (negative class)
+T0263,A0019,1115.63,USD,1115.63,2024-11-27,completed,false,HIGH_RISK_JURISDICTION,CP_015,IR,wire,no EDD applied
+T0405,A0069,2272727.27,KZT,5000.00,2024-11-27,completed,false,ROUND_NUMBER_ANOMALY,CP_011,AU,card_payment,Round-amount SB cluster (3/3)
+T0018,A0008,58405.83,USD,58405.83,2024-11-28,completed,false,AML_THRESHOLD,CP_043,GB,cash_withdrawal,AML-scenario tx (target USD=58405.83)
+T0208,A0004,6837.66,EUR,7384.67,2024-11-28,completed,false,KYC_EXPIRED,CP_036,PL,cash_withdrawal,Tx after KYC expiry
+T0295,A0060,13878.44,USD,13878.44,2024-11-28,completed,true,HIGH_RISK_JURISDICTION,CP_073,VE,cash_deposit,EDD applied: enhanced verification complete
+T0426,A0091,1775.48,EUR,1917.52,2024-11-28,completed,true,,CP_058,AU,transfer,Normal compliant tx (negative class)
+T0213,A0037,8102.80,USD,8102.80,2024-11-30,completed,false,KYC_EXPIRED,CP_041,JP,transfer,Tx after KYC expiry
+T0235,A0054,1343.05,EUR,1450.49,2024-12-01,completed,true,KYC_EXPIRED,CP_083,SG,cash_deposit,Tx within KYC validity window
+T0090,A0046,9312.14,USD,9312.14,2024-12-02,completed,false,STRUCTURING,CP_058,AU,card_payment,Structuring cluster member (2/5)
+T0092,A0046,9224.02,USD,9224.02,2024-12-02,completed,false,STRUCTURING,CP_058,AU,cash_deposit,Structuring cluster member (4/5)
+T0105,A0048,9084.87,USD,9084.87,2024-12-02,completed,false,STRUCTURING,CP_042,DE,transfer,Structuring cluster member (2/5)
+T0240,A0023,8219.69,EUR,8877.26,2024-12-02,completed,true,KYC_EXPIRED,CP_044,IT,cash_deposit,Tx within KYC validity window
+T0356,A0075,12379.81,USD,12379.81,2024-12-02,completed,false,DORMANT_REACTIVATION,CP_080,GB,transfer,Reactivation after long dormancy
+T0359,A0022,9601.19,USD,9601.19,2024-12-02,completed,false,DORMANT_REACTIVATION,CP_020,GB,card_payment,Reactivation after long dormancy
+T0049,A0021,3720600.00,KZT,8185.32,2024-12-03,completed,true,AML_THRESHOLD,CP_031,GB,cash_withdrawal,AML-scenario tx (target USD=8185.32)
+T0091,A0046,9506.91,USD,9506.91,2024-12-03,completed,false,STRUCTURING,CP_058,AU,cash_withdrawal,Structuring cluster member (3/5)
+T0259,A0075,16036.72,USD,16036.72,2024-12-03,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,wire,no EDD applied
+T0293,A0058,6387.94,USD,6387.94,2024-12-03,completed,true,HIGH_RISK_JURISDICTION,CP_045,AU,card_payment,Normal-jurisdiction tx
+T0358,A0033,16520.72,USD,16520.72,2024-12-03,completed,false,DORMANT_REACTIVATION,CP_066,PL,cash_deposit,Reactivation after long dormancy
+T0471,A0009,3072.95,USD,3072.95,2024-12-03,completed,true,,CP_054,AE,transfer,Normal compliant tx (negative class)
+T0058,A0085,4425.98,GBP,5621.00,2024-12-04,completed,true,AML_THRESHOLD,CP_057,ES,transfer,AML-scenario tx (target USD=5621.00)
+T0089,A0046,9051.39,USD,9051.39,2024-12-04,completed,false,STRUCTURING,CP_058,AU,card_payment,Structuring cluster member (1/5)
+T0093,A0046,9844.53,USD,9844.53,2024-12-04,completed,false,STRUCTURING,CP_058,AU,wire,Structuring cluster member (5/5)
+T0107,A0048,9673.29,USD,9673.29,2024-12-04,completed,false,STRUCTURING,CP_042,DE,cash_withdrawal,Structuring cluster member (4/5)
+T0172,A0028,13945.70,USD,13945.70,2024-12-04,completed,true,SANCTIONS,CP_022,CA,card_payment,Normal-CP tx in sanctions scenario
+T0246,A0069,3815945.45,KZT,8395.08,2024-12-04,completed,true,KYC_EXPIRED,CP_020,GB,cash_deposit,Tx within KYC validity window
+T0108,A0048,9661.28,USD,9661.28,2024-12-05,completed,false,STRUCTURING,CP_042,DE,card_payment,Structuring cluster member (5/5)
+T0104,A0048,9324.06,USD,9324.06,2024-12-06,completed,false,STRUCTURING,CP_042,DE,card_payment,Structuring cluster member (1/5)
+T0106,A0048,9157.25,USD,9157.25,2024-12-06,completed,false,STRUCTURING,CP_042,DE,wire,Structuring cluster member (3/5)
+T0450,A0018,1044.21,USD,1044.21,2024-12-06,completed,true,,CP_033,JP,card_payment,Normal compliant tx (negative class)
+T0283,A0099,5028.29,USD,5028.29,2024-12-07,completed,true,HIGH_RISK_JURISDICTION,CP_076,SY,wire,EDD applied: enhanced verification complete
+T0349,A0025,1506.41,USD,1506.41,2024-12-07,completed,true,VELOCITY,CP_018,AU,cash_withdrawal,Compliant low-velocity cluster (1/2)
+T0350,A0025,1406.47,USD,1406.47,2024-12-07,completed,true,VELOCITY,CP_034,IT,transfer,Compliant low-velocity cluster (2/2)
+T0355,A0073,5405.50,USD,5405.50,2024-12-07,completed,false,DORMANT_REACTIVATION,CP_031,GB,card_payment,Reactivation after long dormancy
+T0072,A0019,5045.20,USD,5045.20,2024-12-08,completed,true,AML_THRESHOLD,CP_057,ES,wire,AML-scenario tx (target USD=5045.20)
+T0088,A0056,8638.26,EUR,9329.32,2024-12-08,completed,false,STRUCTURING,CP_014,GB,cash_withdrawal,Structuring cluster member (3/3)
+T0086,A0056,9016.72,EUR,9738.06,2024-12-09,completed,false,STRUCTURING,CP_014,GB,card_payment,Structuring cluster member (1/3)
+T0157,A0057,7480.73,USD,7480.73,2024-12-09,completed,false,SANCTIONS,CP_SAN_10,SY,cash_withdrawal,Sanctioned-CP tx
+T0411,A0083,1851.85,EUR,2000.00,2024-12-10,completed,true,ROUND_NUMBER_ANOMALY,CP_088,GB,cash_deposit,Isolated round-amount tx (not SB cluster)
+T0446,A0085,2098.56,GBP,2665.17,2024-12-11,completed,true,,CP_050,KZ,wire,Normal compliant tx (negative class)
+T0003,A0095,50651.57,USD,50651.57,2024-12-12,completed,false,AML_THRESHOLD,CP_067,CA,wire,AML-scenario tx (target USD=50651.57)
+T0025,A0060,50741.95,USD,50741.95,2024-12-12,completed,false,AML_THRESHOLD,CP_043,GB,cash_withdrawal,AML-scenario tx (target USD=50741.95)
+T0087,A0056,8388.81,EUR,9059.92,2024-12-12,completed,false,STRUCTURING,CP_014,GB,card_payment,Structuring cluster member (2/3)
+T0066,A0088,689.76,EUR,744.94,2024-12-13,completed,true,AML_THRESHOLD,CP_029,KZ,card_payment,AML-scenario tx (target USD=744.94)
+T0361,A0086,15309.81,USD,15309.81,2024-12-13,completed,false,DORMANT_REACTIVATION,CP_007,IT,transfer,Reactivation after long dormancy
+T0491,A0057,3352.76,USD,3352.76,2024-12-13,completed,true,,CP_074,AE,cash_withdrawal,Normal compliant tx (negative class)
+T0498,A0052,2881.81,USD,2881.81,2024-12-13,completed,true,,CP_054,AE,wire,Normal compliant tx (negative class)
+T0218,A0039,5041.54,USD,5041.54,2024-12-14,completed,false,KYC_EXPIRED,CP_065,IT,cash_withdrawal,Tx after KYC expiry
+T0221,A0086,5625.19,USD,5625.19,2024-12-14,completed,true,KYC_EXPIRED,CP_087,US,transfer,Tx within KYC validity window
+T0379,A0044,2958.92,USD,2958.92,2024-12-14,completed,true,DORMANT_REACTIVATION,CP_083,SG,cash_deposit,Tx within normal activity window
+T0128,A0098,9075.28,USD,9075.28,2024-12-15,completed,true,STRUCTURING,CP_089,JP,cash_withdrawal,Isolated near-threshold tx (not structuring)
+T0183,A0031,15892.30,USD,15892.30,2024-12-15,completed,true,SANCTIONS,CP_090,DE,card_payment,Normal-CP tx in sanctions scenario
+T0269,A0044,7408.60,USD,7408.60,2024-12-15,completed,false,HIGH_RISK_JURISDICTION,CP_076,SY,cash_deposit,no EDD applied
+T0280,A0013,2460.63,USD,2460.63,2024-12-15,completed,true,HIGH_RISK_JURISDICTION,CP_073,VE,transfer,EDD applied: enhanced verification complete
+T0444,A0024,2780.37,USD,2780.37,2024-12-15,completed,true,,CP_062,BR,cash_withdrawal,Normal compliant tx (negative class)
+T0017,A0089,25181.56,USD,25181.56,2024-12-16,completed,false,AML_THRESHOLD,CP_053,CA,cash_withdrawal,AML-scenario tx (target USD=25181.56)
+T0265,A0053,6694.77,GBP,8502.36,2024-12-16,completed,false,HIGH_RISK_JURISDICTION,CP_015,IR,card_payment,no EDD applied
+T0185,A0044,4789.68,USD,4789.68,2024-12-17,completed,true,SANCTIONS,CP_088,GB,cash_withdrawal,Normal-CP tx in sanctions scenario
+T0202,A0002,677.77,EUR,731.99,2024-12-17,completed,false,KYC_EXPIRED,CP_019,JP,cash_deposit,Tx after KYC expiry
+T0466,A0009,505.92,USD,505.92,2024-12-18,completed,true,,CP_006,AU,cash_withdrawal,Normal compliant tx (negative class)
+T0487,A0062,3173.31,USD,3173.31,2024-12-18,completed,true,,CP_040,DE,transfer,Normal compliant tx (negative class)
+T0012,A0046,32091.89,USD,32091.89,2024-12-19,completed,false,AML_THRESHOLD,CP_057,ES,card_payment,AML-scenario tx (target USD=32091.89)
+T0043,A0096,435.71,EUR,470.57,2024-12-19,completed,true,AML_THRESHOLD,CP_088,GB,cash_withdrawal,AML-scenario tx (target USD=470.57)
+T0070,A0019,3467.48,USD,3467.48,2024-12-19,completed,true,AML_THRESHOLD,CP_002,JP,transfer,AML-scenario tx (target USD=3467.48)
+T0199,A0039,6111.01,USD,6111.01,2024-12-20,completed,false,KYC_EXPIRED,CP_038,DE,wire,Tx after KYC expiry
+T0493,A0030,4522.19,USD,4522.19,2024-12-20,completed,true,,CP_006,AU,cash_withdrawal,Normal compliant tx (negative class)
+T0273,A0062,11429.51,USD,11429.51,2024-12-21,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,cash_deposit,no EDD applied
+T0442,A0024,2779.14,USD,2779.14,2024-12-21,completed,true,,CP_012,AE,transfer,Normal compliant tx (negative class)
+T0161,A0054,18994.30,EUR,20513.84,2024-12-23,completed,false,SANCTIONS,CP_SAN_03,MM,card_payment,Sanctioned-CP tx
+T0275,A0051,15051.08,GBP,19114.87,2024-12-23,completed,false,HIGH_RISK_JURISDICTION,CP_047,MM,transfer,no EDD applied
+T0298,A0054,14137.35,EUR,15268.34,2024-12-23,completed,true,HIGH_RISK_JURISDICTION,CP_064,US,transfer,Normal-jurisdiction tx
+T0340,A0019,1833.75,USD,1833.75,2024-12-24,completed,true,VELOCITY,CP_063,AU,card_payment,Compliant low-velocity cluster (1/4)
+T0341,A0019,1937.18,USD,1937.18,2024-12-24,completed,true,VELOCITY,CP_056,BR,card_payment,Compliant low-velocity cluster (2/4)
+T0342,A0019,311.48,USD,311.48,2024-12-24,completed,true,VELOCITY,CP_071,AE,transfer,Compliant low-velocity cluster (3/4)
+T0343,A0019,446.51,USD,446.51,2024-12-24,completed,true,VELOCITY,CP_035,AU,wire,Compliant low-velocity cluster (4/4)
+T0452,A0020,3990.03,USD,3990.03,2024-12-24,completed,true,,CP_029,KZ,wire,Normal compliant tx (negative class)
+T0476,A0032,359.01,GBP,455.94,2024-12-24,completed,true,,CP_053,CA,wire,Normal compliant tx (negative class)
+T0136,A0095,9449.28,USD,9449.28,2024-12-25,completed,true,STRUCTURING,CP_006,AU,card_payment,Isolated near-threshold tx (not structuring)
+T0138,A0020,9450.07,USD,9450.07,2024-12-25,completed,true,STRUCTURING,CP_008,TR,cash_deposit,Isolated near-threshold tx (not structuring)
+T0158,A0030,6359.63,USD,6359.63,2024-12-25,completed,false,SANCTIONS,CP_SAN_09,KP,cash_withdrawal,Sanctioned-CP tx
+T0186,A0090,15977.53,USD,15977.53,2024-12-25,completed,true,SANCTIONS,CP_065,IT,transfer,Normal-CP tx in sanctions scenario
+T0211,A0075,9474.27,USD,9474.27,2024-12-25,completed,false,KYC_EXPIRED,CP_060,JP,cash_deposit,Tx after KYC expiry
+T0427,A0029,3417.92,EUR,3691.35,2024-12-25,completed,true,,CP_038,DE,wire,Normal compliant tx (negative class)
+T0432,A0056,2808.08,EUR,3032.73,2024-12-26,completed,true,,CP_062,BR,cash_deposit,Normal compliant tx (negative class)
+T0290,A0023,16659.56,EUR,17992.33,2024-12-29,completed,true,HIGH_RISK_JURISDICTION,CP_087,US,cash_withdrawal,Normal-jurisdiction tx
+T0169,A0019,1438.43,USD,1438.43,2024-12-30,completed,false,SANCTIONS,CP_SAN_03,MM,cash_withdrawal,Sanctioned-CP tx
+T0116,A0091,8796.07,EUR,9499.76,2024-12-31,completed,true,STRUCTURING,CP_032,JP,cash_deposit,Isolated near-threshold tx (not structuring)
