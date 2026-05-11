@@ -25,6 +25,11 @@ class FinancialLLM:
     - `ask(...) -> str` remains the main entry point used by the controller.
     """
 
+    # gpt-4o-mini list pricing (USD per 1M tokens). Update if switching model.
+    PRICING_USD_PER_1M = {
+        "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    }
+
     def __init__(
         self,
         model: str = "gpt-4o-mini",
@@ -36,6 +41,44 @@ class FinancialLLM:
         self.model = model
         self.temperature = temperature
         self.max_retries = max_retries
+
+        # Per-call usage log. The runner reads this to compute total cost
+        # and (with index bookkeeping) per-arm breakdown.
+        self.usage_log: List[Dict[str, Any]] = []
+
+    # ------------------------------------------------------------------ Pricing
+
+    def _cost_usd(self, prompt_tokens: int, completion_tokens: int) -> float:
+        rates = self.PRICING_USD_PER_1M.get(self.model)
+        if rates is None:
+            return 0.0
+        return (
+            (prompt_tokens / 1_000_000) * rates["input"]
+            + (completion_tokens / 1_000_000) * rates["output"]
+        )
+
+    def _record_usage(self, response: Any) -> None:
+        """Append the most recent response's token usage + USD cost."""
+        u = getattr(response, "usage", None)
+        if u is None:
+            return
+        pt = getattr(u, "prompt_tokens", 0) or 0
+        ct = getattr(u, "completion_tokens", 0) or 0
+        tt = getattr(u, "total_tokens", pt + ct) or (pt + ct)
+        self.usage_log.append({
+            "prompt_tokens": pt,
+            "completion_tokens": ct,
+            "total_tokens": tt,
+            "cost_usd": self._cost_usd(pt, ct),
+        })
+
+    @property
+    def total_cost_usd(self) -> float:
+        return sum(e.get("cost_usd", 0.0) for e in self.usage_log)
+
+    @property
+    def total_tokens(self) -> int:
+        return sum(e.get("total_tokens", 0) for e in self.usage_log)
 
         # Default system prompt emphasizes:
         # - Use of provided facts
@@ -105,6 +148,7 @@ class FinancialLLM:
                     response_format={"type": "json_object"} if json_mode else None,
                     messages=messages,
                 )
+                self._record_usage(response)
                 return response.choices[0].message.content or ""
             except Exception as e:
                 if attempt == self.max_retries - 1:
@@ -296,6 +340,7 @@ class FinancialLLM:
                     response_format={"type": "json_object"},
                     messages=messages,
                 )
+                self._record_usage(response)
                 raw = response.choices[0].message.content
                 try:
                     parsed = json.loads(raw)

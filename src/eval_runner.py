@@ -329,6 +329,10 @@ class ArmMetrics:
 # --------------------------------------------------------------------------- #
 
 
+class BudgetExceeded(RuntimeError):
+    """Raised when the cumulative LLM cost crosses the configured cap."""
+
+
 def run(
     data_dir: Path,
     out_dir: Path,
@@ -338,6 +342,7 @@ def run(
     seed: int,
     log_file: Optional[Path],
     verbose: bool,
+    budget_cap_usd: Optional[float] = None,
 ) -> Dict[str, Any]:
     """Execute the full ablation matrix and write results to `out_dir`."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -358,6 +363,13 @@ def run(
 
     # Per-arm metrics + per-tx CSV
     metrics: Dict[str, ArmMetrics] = {a.name: ArmMetrics(arm=a.name) for a in arms}
+    # Per-arm token / cost aggregates. Empty if the LLM doesn't expose usage_log.
+    arm_usage: Dict[str, Dict[str, float]] = {
+        a.name: {"prompt_tokens": 0, "completion_tokens": 0,
+                 "total_tokens": 0, "cost_usd": 0.0, "n_calls": 0}
+        for a in arms
+    }
+    budget_hit = False
 
     results_path = out_dir / "results.csv"
     log_fp = None
@@ -372,7 +384,10 @@ def run(
             "predicted", "correct", "explanation",
         ])
 
+        usage_log = getattr(llm, "usage_log", None)
         for i, tx_id in enumerate(tx_ids, start=1):
+            if budget_hit:
+                break
             ctx = build_tx_context(
                 tx_id, txs, accounts, clients, counterparties,
                 rule_definitions, kg,
@@ -380,11 +395,40 @@ def run(
             gt = ctx.ground_truth_is_compliant
             for arm in arms:
                 facts = arm.build_facts(ctx)
-                parsed, raw = llm.ask_compliance_json(USER_MESSAGE, facts)
+
+                # Snapshot usage-log length BEFORE the call so we can attribute
+                # this call's usage to the current arm.
+                usage_before = len(usage_log) if usage_log is not None else 0
+                parsed_failure = False
+                try:
+                    parsed, raw = llm.ask_compliance_json(USER_MESSAGE, facts)
+                except Exception as e:
+                    parsed, raw = None, f"<<llm-error: {e!r}>>"
+                    parsed_failure = True
+
+                # Attribute newly-appended usage entries to this arm
+                call_cost = 0.0
+                call_tokens = 0
+                if usage_log is not None:
+                    for entry in usage_log[usage_before:]:
+                        arm_usage[arm.name]["prompt_tokens"] += entry.get(
+                            "prompt_tokens", 0)
+                        arm_usage[arm.name]["completion_tokens"] += entry.get(
+                            "completion_tokens", 0)
+                        arm_usage[arm.name]["total_tokens"] += entry.get(
+                            "total_tokens", 0)
+                        c = entry.get("cost_usd", 0.0)
+                        arm_usage[arm.name]["cost_usd"] += c
+                        call_cost += c
+                        call_tokens += entry.get("total_tokens", 0)
+                    arm_usage[arm.name]["n_calls"] += 1
 
                 pred = None
                 explanation = ""
-                if isinstance(parsed, dict):
+                json_decode_failed = False
+                if parsed is None:
+                    json_decode_failed = not parsed_failure
+                elif isinstance(parsed, dict):
                     val = parsed.get("is_compliant")
                     if isinstance(val, bool):
                         pred = val
@@ -412,28 +456,62 @@ def run(
                         "correct": correct,
                         "explanation": explanation,
                         "raw": raw,
+                        "call_tokens": call_tokens,
+                        "call_cost_usd": call_cost,
+                        "json_decode_failed": json_decode_failed,
+                        "api_error": parsed_failure,
                     }) + "\n")
 
                 if gt is not None:
                     metrics[arm.name].record(gt, pred, ctx.scenario_rule_id or "UNKNOWN")
 
-            if verbose and (i % 25 == 0 or i == len(tx_ids)):
+                # Budget cap check after every call
+                if budget_cap_usd is not None and usage_log is not None:
+                    cumulative = sum(e.get("cost_usd", 0.0) for e in usage_log)
+                    if cumulative > budget_cap_usd:
+                        print(
+                            f"  !! BUDGET CAP HIT: cumulative ${cumulative:.4f} "
+                            f"> cap ${budget_cap_usd:.4f}. Stopping.",
+                            file=sys.stderr,
+                        )
+                        budget_hit = True
+                        break
+
+            if verbose and (i % 5 == 0 or i == len(tx_ids)):
                 accs = " ".join(
                     f"{a.name}={(metrics[a.name].accuracy() or 0):.3f}"
                     for a in arms
                 )
-                print(f"  [{i}/{len(tx_ids)}] running accuracy  {accs}",
-                      file=sys.stderr)
+                cum_cost = (sum(e.get("cost_usd", 0.0) for e in usage_log)
+                            if usage_log is not None else 0.0)
+                print(f"  [{i}/{len(tx_ids)}] accs {accs}  "
+                      f"cum_cost=${cum_cost:.4f}", file=sys.stderr)
 
     if log_fp is not None:
         log_fp.close()
 
+    total_cost = (
+        sum(e.get("cost_usd", 0.0) for e in (getattr(llm, "usage_log", None) or []))
+    )
+    total_tokens = (
+        sum(e.get("total_tokens", 0) for e in (getattr(llm, "usage_log", None) or []))
+    )
     summary = {
         "data_dir": str(data_dir.resolve()),
         "out_dir": str(out_dir.resolve()),
         "n_transactions": len(tx_ids),
+        "n_transactions_completed": len({
+            tx_id for tx_id in tx_ids
+        }) if not budget_hit else metrics[arms[0].name].n_total,
         "arms": [a.name for a in arms],
         "metrics": {a.name: metrics[a.name].to_dict() for a in arms},
+        "usage": {
+            "total_cost_usd": total_cost,
+            "total_tokens": total_tokens,
+            "per_arm": arm_usage,
+            "budget_cap_usd": budget_cap_usd,
+            "budget_hit": budget_hit,
+        },
         "completed_at_utc": datetime.now(timezone.utc).isoformat(),
     }
     (out_dir / "summary.json").write_text(
@@ -466,6 +544,8 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
                    help="Use DryRunLLM (no API calls, no spend)")
     p.add_argument("--verbose", action="store_true",
                    help="Print running accuracy to stderr")
+    p.add_argument("--budget-cap-usd", type=float, default=None,
+                   help="Abort the run if cumulative LLM cost crosses this cap")
     return p.parse_args(argv)
 
 
@@ -499,6 +579,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         seed=args.seed,
         log_file=args.log_file,
         verbose=args.verbose,
+        budget_cap_usd=args.budget_cap_usd,
     )
     elapsed = time.time() - t0
 
@@ -511,6 +592,13 @@ def main(argv: Optional[List[str]] = None) -> None:
         print(f"  arm {arm_name}: acc={acc_s}  f1={f1_s}  "
               f"tp={m['tp']} fp={m['fp']} tn={m['tn']} fn={m['fn']}  "
               f"unknown={m['n_unknown']}")
+    u = summary.get("usage", {})
+    if u.get("total_cost_usd", 0) > 0:
+        print(f"  ---")
+        print(f"  total tokens : {u['total_tokens']}")
+        print(f"  total cost   : ${u['total_cost_usd']:.4f}")
+        if u.get("budget_hit"):
+            print(f"  !! budget cap ${u['budget_cap_usd']:.4f} was hit; run aborted")
 
 
 if __name__ == "__main__":
