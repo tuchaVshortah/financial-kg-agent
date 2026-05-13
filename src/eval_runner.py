@@ -166,10 +166,14 @@ def build_tx_context(
         rule_definitions=rule_definitions,
         kg_relations=relations,
         ground_truth_is_compliant=ground_truth,
-        # First (and usually only) rule_id named in transactions.csv;
-        # NORMAL tx have an empty rule_ids field.
+        # `scenario_rule` is the authoritative tag, written by the generator.
+        # Falls back to first rule_id for datasets predating the column
+        # (rule_ids are sorted alphabetically post-cross-rule so this is
+        # only safe on pre-cross-rule data).
         scenario_rule_id=(
-            (tx.get("rule_ids") or "").split(",")[0] or "NORMAL"
+            tx.get("scenario_rule")
+            or (tx.get("rule_ids") or "").split(",")[0]
+            or "NORMAL"
         ),
     )
 

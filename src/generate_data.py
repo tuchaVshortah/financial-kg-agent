@@ -231,6 +231,11 @@ class GenTransaction:
     tx_type: str
     description: str
     is_compliant: bool
+    # Which scenario generated this tx. Persisted as its own CSV column so
+    # per-scenario evaluation breakdowns survive cross-rule labeling (which
+    # adds multiple entries to rule_relations and makes "first rule_id" no
+    # longer identify the scenario). NORMAL for the baseline class.
+    scenario_rule: str = "NORMAL"
     # rule_id -> "violates" | "compliant".
     # Scenario functions populate the entry for their own scenario rule;
     # cross_rule_pass() additionally merges all PER_TX_RULES evaluations.
@@ -506,6 +511,7 @@ def gen_aml_threshold(
                 tx_type=rng.choice(TX_TYPES),
                 description=f"AML-scenario tx (target USD={usd})",
                 is_compliant=not is_violation,
+                scenario_rule="AML_THRESHOLD",
                 rule_relations={
                     "AML_THRESHOLD": "violates" if is_violation else "compliant"
                 },
@@ -559,6 +565,7 @@ def gen_structuring(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Structuring cluster member ({k+1}/{sz})",
                     is_compliant=False,
+                    scenario_rule="STRUCTURING",
                     rule_relations={"STRUCTURING": "violates"},
                 )
             )
@@ -584,6 +591,7 @@ def gen_structuring(
                 tx_type=rng.choice(TX_TYPES),
                 description="Isolated near-threshold tx (not structuring)",
                 is_compliant=True,
+                scenario_rule="STRUCTURING",
                 rule_relations={"STRUCTURING": "compliant"},
             )
         )
@@ -623,6 +631,7 @@ def gen_sanctions(
                 description=("Sanctioned-CP tx" if is_violation
                              else "Normal-CP tx in sanctions scenario"),
                 is_compliant=not is_violation,
+                scenario_rule="SANCTIONS",
                 rule_relations={
                     "SANCTIONS": "violates" if is_violation else "compliant"
                 },
@@ -675,6 +684,7 @@ def gen_kyc_expired(
                 description=("Tx after KYC expiry" if is_violation
                              else "Tx within KYC validity window"),
                 is_compliant=not is_violation,
+                scenario_rule="KYC_VALIDITY",
                 rule_relations={
                     "KYC_VALIDITY": "violates" if is_violation else "compliant"
                 },
@@ -724,6 +734,7 @@ def gen_high_risk_jurisdiction(
                 tx_type=rng.choice(TX_TYPES),
                 description=desc,
                 is_compliant=not is_violation,
+                scenario_rule="HIGH_RISK_JURISDICTION",
                 rule_relations={
                     "HIGH_RISK_JURISDICTION":
                         "violates" if is_violation else "compliant"
@@ -783,6 +794,7 @@ def gen_velocity(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Velocity burst tx ({k+1}/{sz})",
                     is_compliant=False,
+                    scenario_rule="VELOCITY",
                     rule_relations={"VELOCITY": "violates"},
                 )
             )
@@ -811,6 +823,7 @@ def gen_velocity(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Compliant low-velocity cluster ({k+1}/{sz})",
                     is_compliant=True,
+                    scenario_rule="VELOCITY",
                     rule_relations={"VELOCITY": "compliant"},
                 )
             )
@@ -864,6 +877,7 @@ def gen_dormant_reactivation(
                 description=("Reactivation after long dormancy" if is_violation
                              else "Tx within normal activity window"),
                 is_compliant=not is_violation,
+                scenario_rule="DORMANT_ACCOUNT_RULE",
                 rule_relations={
                     "DORMANT_ACCOUNT_RULE":
                         "violates" if is_violation else "compliant"
@@ -922,6 +936,7 @@ def gen_round_number_anomaly(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Round-amount SB cluster ({k+1}/{sz})",
                     is_compliant=False,
+                    scenario_rule="ROUND_NUMBER_ANOMALY",
                     rule_relations={"ROUND_NUMBER_ANOMALY": "violates"},
                 )
             )
@@ -946,6 +961,7 @@ def gen_round_number_anomaly(
                 tx_type=rng.choice(TX_TYPES),
                 description="Isolated round-amount tx (not SB cluster)",
                 is_compliant=True,
+                scenario_rule="ROUND_NUMBER_ANOMALY",
                 rule_relations={"ROUND_NUMBER_ANOMALY": "compliant"},
             )
         )
@@ -986,6 +1002,7 @@ def gen_normal(
                 tx_type=rng.choice(TX_TYPES),
                 description="Normal compliant tx (negative class)",
                 is_compliant=True,
+                scenario_rule="NORMAL",
                 rule_relations={},
             )
         )
@@ -1299,7 +1316,7 @@ def _write_transactions_csv(path: Path, txs: Sequence[GenTransaction]) -> None:
         w = csv.writer(f)
         w.writerow([
             "tx_id", "account_id", "amount", "currency", "amount_usd",
-            "date", "status", "is_compliant", "rule_ids",
+            "date", "status", "is_compliant", "scenario_rule", "rule_ids",
             "counterparty_id", "counterparty_country", "tx_type", "description",
         ])
         for t in txs:
@@ -1308,6 +1325,7 @@ def _write_transactions_csv(path: Path, txs: Sequence[GenTransaction]) -> None:
                 f"{t.amount:.2f}", t.currency, f"{t.amount_usd:.2f}",
                 t.date, t.status,
                 "true" if t.is_compliant else "false",
+                t.scenario_rule,
                 ",".join(t.rule_ids),
                 t.counterparty_id, t.counterparty_country, t.tx_type, t.description,
             ])
