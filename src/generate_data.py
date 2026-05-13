@@ -103,10 +103,12 @@ RULE_DEFINITIONS: Dict[str, Dict[str, str]] = {
         "category": "Sanctions",
         "severity": "high",
     },
-    "KYC_EXPIRED": {
+    "KYC_VALIDITY": {
         "description": (
-            "Transactions executed after the client's KYC expiry date violate "
-            "Know-Your-Customer requirements."
+            "Every transaction requires the client to hold a currently-valid "
+            "Know-Your-Customer record. A transaction violates this rule if "
+            "the client's KYC is missing, marked expired, or has an expiry "
+            "date earlier than the transaction date."
         ),
         "category": "KYC",
         "severity": "high",
@@ -129,7 +131,7 @@ RULE_DEFINITIONS: Dict[str, Dict[str, str]] = {
         "category": "Behavioral",
         "severity": "medium",
     },
-    "DORMANT_REACTIVATION": {
+    "DORMANT_ACCOUNT_RULE": {
         "description": (
             "An account that has been inactive for at least 180 days and then "
             "transacts at 5,000 USD-equivalent or above triggers a dormant-"
@@ -149,6 +151,19 @@ RULE_DEFINITIONS: Dict[str, Dict[str, str]] = {
     },
 }
 
+# Rules that can be evaluated against a single transaction in isolation,
+# without needing cross-tx context. The cross-rule labeling pass walks every
+# generated tx and applies all of these so the dataset reflects real-world
+# AML labeling (any rule fires -> tx is non-compliant), not just the
+# rule-of-the-scenario.
+PER_TX_RULES = (
+    "AML_THRESHOLD",
+    "SANCTIONS",
+    "KYC_VALIDITY",
+    "HIGH_RISK_JURISDICTION",
+    "DORMANT_ACCOUNT_RULE",
+)
+
 # Scenario distribution at default --n 500.
 # Each entry: (rule_id, total_tx, non_compliant_tx).
 # rule_id == "NORMAL" denotes the baseline negative class (no rule triggers).
@@ -156,10 +171,10 @@ SCENARIO_DISTRIBUTION: List[Tuple[str, int, int]] = [
     ("AML_THRESHOLD", 80, 40),
     ("STRUCTURING", 60, 30),
     ("SANCTIONS", 50, 30),
-    ("KYC_EXPIRED", 60, 30),
+    ("KYC_VALIDITY", 60, 30),
     ("HIGH_RISK_JURISDICTION", 50, 25),
     ("VELOCITY", 50, 25),
-    ("DORMANT_REACTIVATION", 40, 20),
+    ("DORMANT_ACCOUNT_RULE", 40, 20),
     ("ROUND_NUMBER_ANOMALY", 30, 15),
     ("NORMAL", 80, 0),
 ]
@@ -216,7 +231,26 @@ class GenTransaction:
     tx_type: str
     description: str
     is_compliant: bool
-    rule_ids: List[str]        # may include multiple rules per tx
+    # rule_id -> "violates" | "compliant".
+    # Scenario functions populate the entry for their own scenario rule;
+    # cross_rule_pass() additionally merges all PER_TX_RULES evaluations.
+    rule_relations: Dict[str, str] = field(default_factory=dict)
+
+    @property
+    def rule_ids(self) -> List[str]:
+        """Sorted list of all rules in rule_relations (preserves CSV column)."""
+        return sorted(self.rule_relations.keys())
+
+    @property
+    def firing_rules(self) -> List[str]:
+        return sorted(
+            r for r, rel in self.rule_relations.items() if rel == "violates"
+        )
+
+    def recompute_is_compliant(self) -> None:
+        self.is_compliant = not any(
+            rel == "violates" for rel in self.rule_relations.values()
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -472,7 +506,9 @@ def gen_aml_threshold(
                 tx_type=rng.choice(TX_TYPES),
                 description=f"AML-scenario tx (target USD={usd})",
                 is_compliant=not is_violation,
-                rule_ids=["AML_THRESHOLD"],
+                rule_relations={
+                    "AML_THRESHOLD": "violates" if is_violation else "compliant"
+                },
             )
         )
     return out
@@ -523,7 +559,7 @@ def gen_structuring(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Structuring cluster member ({k+1}/{sz})",
                     is_compliant=False,
-                    rule_ids=["STRUCTURING"],
+                    rule_relations={"STRUCTURING": "violates"},
                 )
             )
 
@@ -548,7 +584,7 @@ def gen_structuring(
                 tx_type=rng.choice(TX_TYPES),
                 description="Isolated near-threshold tx (not structuring)",
                 is_compliant=True,
-                rule_ids=["STRUCTURING"],
+                rule_relations={"STRUCTURING": "compliant"},
             )
         )
     return out
@@ -587,7 +623,9 @@ def gen_sanctions(
                 description=("Sanctioned-CP tx" if is_violation
                              else "Normal-CP tx in sanctions scenario"),
                 is_compliant=not is_violation,
-                rule_ids=["SANCTIONS"],
+                rule_relations={
+                    "SANCTIONS": "violates" if is_violation else "compliant"
+                },
             )
         )
     return out
@@ -637,7 +675,9 @@ def gen_kyc_expired(
                 description=("Tx after KYC expiry" if is_violation
                              else "Tx within KYC validity window"),
                 is_compliant=not is_violation,
-                rule_ids=["KYC_EXPIRED"],
+                rule_relations={
+                    "KYC_VALIDITY": "violates" if is_violation else "compliant"
+                },
             )
         )
     return out
@@ -684,7 +724,10 @@ def gen_high_risk_jurisdiction(
                 tx_type=rng.choice(TX_TYPES),
                 description=desc,
                 is_compliant=not is_violation,
-                rule_ids=["HIGH_RISK_JURISDICTION"],
+                rule_relations={
+                    "HIGH_RISK_JURISDICTION":
+                        "violates" if is_violation else "compliant"
+                },
             )
         )
     return out
@@ -740,7 +783,7 @@ def gen_velocity(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Velocity burst tx ({k+1}/{sz})",
                     is_compliant=False,
-                    rule_ids=["VELOCITY"],
+                    rule_relations={"VELOCITY": "violates"},
                 )
             )
 
@@ -768,7 +811,7 @@ def gen_velocity(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Compliant low-velocity cluster ({k+1}/{sz})",
                     is_compliant=True,
-                    rule_ids=["VELOCITY"],
+                    rule_relations={"VELOCITY": "compliant"},
                 )
             )
         n_compliant -= sz
@@ -821,7 +864,10 @@ def gen_dormant_reactivation(
                 description=("Reactivation after long dormancy" if is_violation
                              else "Tx within normal activity window"),
                 is_compliant=not is_violation,
-                rule_ids=["DORMANT_REACTIVATION"],
+                rule_relations={
+                    "DORMANT_ACCOUNT_RULE":
+                        "violates" if is_violation else "compliant"
+                },
             )
         )
     return out
@@ -876,7 +922,7 @@ def gen_round_number_anomaly(
                     tx_type=rng.choice(TX_TYPES),
                     description=f"Round-amount SB cluster ({k+1}/{sz})",
                     is_compliant=False,
-                    rule_ids=["ROUND_NUMBER_ANOMALY"],
+                    rule_relations={"ROUND_NUMBER_ANOMALY": "violates"},
                 )
             )
 
@@ -900,7 +946,7 @@ def gen_round_number_anomaly(
                 tx_type=rng.choice(TX_TYPES),
                 description="Isolated round-amount tx (not SB cluster)",
                 is_compliant=True,
-                rule_ids=["ROUND_NUMBER_ANOMALY"],
+                rule_relations={"ROUND_NUMBER_ANOMALY": "compliant"},
             )
         )
     return out
@@ -940,7 +986,7 @@ def gen_normal(
                 tx_type=rng.choice(TX_TYPES),
                 description="Normal compliant tx (negative class)",
                 is_compliant=True,
-                rule_ids=[],
+                rule_relations={},
             )
         )
     return out
@@ -950,13 +996,118 @@ SCENARIO_FUNCS = {
     "AML_THRESHOLD": gen_aml_threshold,
     "STRUCTURING": gen_structuring,
     "SANCTIONS": gen_sanctions,
-    "KYC_EXPIRED": gen_kyc_expired,
+    "KYC_VALIDITY": gen_kyc_expired,
     "HIGH_RISK_JURISDICTION": gen_high_risk_jurisdiction,
     "VELOCITY": gen_velocity,
-    "DORMANT_REACTIVATION": gen_dormant_reactivation,
+    "DORMANT_ACCOUNT_RULE": gen_dormant_reactivation,
     "ROUND_NUMBER_ANOMALY": gen_round_number_anomaly,
     "NORMAL": gen_normal,
 }
+
+
+# --------------------------------------------------------------------------- #
+# Cross-rule labeling pass
+# --------------------------------------------------------------------------- #
+
+
+def _check_aml_threshold(tx: GenTransaction) -> bool:
+    """Fires if amount_usd >= 10,000."""
+    return tx.amount_usd >= Decimal("10000")
+
+
+def _check_sanctions(tx: GenTransaction, cp: GenCounterparty) -> bool:
+    """Fires if counterparty is on the embedded sanctions list."""
+    return cp.on_sanctions_list
+
+
+def _check_kyc_validity(tx: GenTransaction, client: GenClient) -> bool:
+    """
+    Fires if the client's KYC is missing, marked expired, OR the recorded
+    expiry date is strictly earlier than the transaction date.
+    """
+    if client.kyc_status in ("expired", "missing"):
+        return True
+    if client.kyc_status == "valid":
+        return client.kyc_expiry_date < tx.date
+    return False
+
+
+def _check_high_risk_jurisdiction(tx: GenTransaction) -> bool:
+    """
+    Fires if the counterparty country is in HIGH_RISK_COUNTRIES AND the
+    transaction description does not contain an explicit 'EDD applied'
+    marker (which signals enhanced due diligence was performed).
+    """
+    if tx.counterparty_country not in HIGH_RISK_COUNTRIES:
+        return False
+    desc = tx.description.lower()
+    # "no edd applied" should NOT count as EDD applied — handle it explicitly
+    return not ("edd applied" in desc and "no edd applied" not in desc)
+
+
+def _check_dormant_account_rule(tx: GenTransaction, account: GenAccount) -> bool:
+    """
+    Fires if the account was inactive (last_active_date >= 180 days before
+    the tx date) AND the transaction is >= 5,000 USD-equivalent.
+    """
+    last_active = date.fromisoformat(account.last_active_date)
+    tx_d = date.fromisoformat(tx.date)
+    dormancy_days = (tx_d - last_active).days
+    return dormancy_days >= 180 and tx.amount_usd >= Decimal("5000")
+
+
+def cross_rule_pass(
+    transactions: List[GenTransaction],
+    accounts_index: Dict[str, GenAccount],
+    clients_index: Dict[str, GenClient],
+    counterparties_index: Dict[str, GenCounterparty],
+) -> Dict[str, Any]:
+    """
+    Walk every generated transaction and evaluate every PER_TX_RULE against
+    it. For each rule, append the (compliant | violates) relation to
+    `rule_relations`. Recompute `is_compliant` from the merged relations.
+
+    Returns a small report dict capturing how the dataset moved:
+      * label_flips : number of tx that flipped from compliant to non-compliant
+                      because of a newly-detected violation
+      * cross_rule_fire_counts : per per-tx rule, how many additional
+                                 firings the pass discovered (i.e., rules
+                                 firing on tx whose scenario was a different
+                                 rule)
+    """
+    label_flips = 0
+    cross_rule_fire_counts: Dict[str, int] = {r: 0 for r in PER_TX_RULES}
+
+    for tx in transactions:
+        acct = accounts_index[tx.account_id]
+        client = clients_index[acct.client_id]
+        cp = counterparties_index[tx.counterparty_id]
+
+        was_compliant = tx.is_compliant
+        # Evaluate every per-tx rule and merge results into rule_relations.
+        # If a rule was already evaluated by the scenario function, the
+        # scenario's relation is preserved (we don't double-write).
+        for rule_id, fires in (
+            ("AML_THRESHOLD", _check_aml_threshold(tx)),
+            ("SANCTIONS", _check_sanctions(tx, cp)),
+            ("KYC_VALIDITY", _check_kyc_validity(tx, client)),
+            ("HIGH_RISK_JURISDICTION", _check_high_risk_jurisdiction(tx)),
+            ("DORMANT_ACCOUNT_RULE", _check_dormant_account_rule(tx, acct)),
+        ):
+            if rule_id in tx.rule_relations:
+                continue
+            tx.rule_relations[rule_id] = "violates" if fires else "compliant"
+            if fires:
+                cross_rule_fire_counts[rule_id] += 1
+
+        tx.recompute_is_compliant()
+        if was_compliant and not tx.is_compliant:
+            label_flips += 1
+
+    return {
+        "label_flips": label_flips,
+        "cross_rule_fire_counts": cross_rule_fire_counts,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -1022,6 +1173,18 @@ def generate(
         }
         transactions.extend(scenario_txs)
 
+    # Pre-cross-rule snapshot for the methodology / findings record.
+    pre_cross_compliant = sum(1 for t in transactions if t.is_compliant)
+    pre_cross_non = len(transactions) - pre_cross_compliant
+
+    # Cross-rule labeling pass: evaluate every PER_TX_RULE against every tx,
+    # flip is_compliant to False if any rule fires that wasn't already
+    # surfaced by the scenario. This is the F-002 fix.
+    cross_rule_report = cross_rule_pass(
+        transactions, accounts_index, clients_index,
+        {c.counterparty_id: c for c in counterparties},
+    )
+
     # Sort transactions by date for deterministic, scannable CSV ordering.
     transactions.sort(key=lambda t: (t.date, t.tx_id))
 
@@ -1058,6 +1221,24 @@ def generate(
         ],
         "per_rule_counts": per_rule_counts,
         "rule_definitions": RULE_DEFINITIONS,
+        "cross_rule_labeling": {
+            "enabled": True,
+            "per_tx_rules": list(PER_TX_RULES),
+            "pre_cross_compliant": pre_cross_compliant,
+            "pre_cross_non_compliant": pre_cross_non,
+            "label_flips_compliant_to_non": cross_rule_report["label_flips"],
+            "additional_firings_by_rule":
+                cross_rule_report["cross_rule_fire_counts"],
+            "notes": (
+                "After scenario-driven generation, each transaction is "
+                "evaluated against every PER_TX_RULE. If any rule fires that "
+                "the scenario didn't already mark, the firing is added to the "
+                "tx's rule_relations and is_compliant is flipped to false. "
+                "This makes the dataset labels reflect real-world AML logic "
+                "(any rule violation -> overall non-compliant), addressing "
+                "finding F-002 in THESIS_FINDINGS.md."
+            ),
+        },
     }
     (out_dir / "generation_metadata.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=False) + "\n",
@@ -1143,15 +1324,19 @@ def _write_rules_csv(path: Path) -> None:
 
 
 def _write_tx_rules_csv(path: Path, txs: Sequence[GenTransaction]) -> None:
+    """
+    Write one row per (tx, rule) pair the tx has been evaluated against,
+    using the per-rule relation captured in `rule_relations`. After the
+    cross-rule labeling pass each tx carries a relation for every
+    PER_TX_RULE, so a non-compliant tx can carry mixed
+    compliant/violates entries (e.g., AML didn't fire, KYC did).
+    """
     with path.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["tx_id", "rule_id", "relation"])
         for t in txs:
             for rid in t.rule_ids:
-                w.writerow([
-                    t.tx_id, rid,
-                    "violates" if not t.is_compliant else "compliant",
-                ])
+                w.writerow([t.tx_id, rid, t.rule_relations[rid]])
 
 
 # --------------------------------------------------------------------------- #

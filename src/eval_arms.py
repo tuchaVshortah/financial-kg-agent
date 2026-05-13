@@ -122,7 +122,15 @@ def _rules_block(rule_definitions: Dict[str, Dict[str, str]]) -> str:
 
 
 def _kg_relations_block(relations: List[Dict[str, str]]) -> str:
-    """Render the per-tx 'compliant with / violates rule X' relations from the KG."""
+    """
+    Render the per-tx rule firings from the KG.
+
+    The phrasing matters: an earlier benchmark (finding F-001 in
+    THESIS_FINDINGS.md) showed that the LLM lexically hijacked loaded
+    rule names (e.g. "is compliant with rule KYC_EXPIRED" got read as
+    "KYC is expired"). The current phrasing makes the predicate
+    capitalized and unambiguous about whether the rule fired.
+    """
     if not relations:
         return "KG RELATIONS: no explicit relations recorded for this transaction.\n"
     lines = ["KG RELATIONS (verified ground-truth-adjacent facts):"]
@@ -130,9 +138,9 @@ def _kg_relations_block(relations: List[Dict[str, str]]) -> str:
         rid = r.get("rule_id", "?")
         rel = r.get("relation", "?")
         if rel == "compliantWith" or rel == "compliant":
-            lines.append(f"  - is compliant with rule {rid}")
+            lines.append(f"  - the {rid} rule does NOT fire on this transaction")
         elif rel == "violatesRule" or rel == "violates":
-            lines.append(f"  - violates rule {rid}")
+            lines.append(f"  - the {rid} rule FIRES on this transaction")
         else:
             lines.append(f"  - related to rule {rid} via {rel}")
     return "\n".join(lines) + "\n"

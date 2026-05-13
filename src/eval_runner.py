@@ -227,16 +227,16 @@ class DryRunLLM:
         if "GROUND-TRUTH FLAG: this transaction is_compliant = false" in facts:
             return {"is_compliant": False, "explanation": "dry-run: read GT flag"}, "{}"
 
-        # 2) KG relations (arm C)
+        # 2) KG relations (arm C). Any "FIRES" line is a decisive
+        # non-compliant signal; otherwise, if every listed rule explicitly
+        # "does NOT fire", treat as compliant.
         if "KG RELATIONS" in facts:
-            # Prefer 'violates' as a deciding signal — matches what a real
-            # LLM should do given an explicit "violates rule X" line.
-            if "  - violates rule" in facts:
+            if "rule FIRES on this transaction" in facts:
                 return {"is_compliant": False,
-                        "explanation": "dry-run: KG says violates"}, "{}"
-            if "  - is compliant with rule" in facts:
+                        "explanation": "dry-run: KG says a rule FIRES"}, "{}"
+            if "rule does NOT fire on this transaction" in facts:
                 return {"is_compliant": True,
-                        "explanation": "dry-run: KG says compliant"}, "{}"
+                        "explanation": "dry-run: KG says no rule fires"}, "{}"
 
         # 3) Arm A / B fallback: seeded coin flip
         pred = self._rng.random() < 0.5

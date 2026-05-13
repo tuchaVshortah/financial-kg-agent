@@ -2,8 +2,8 @@ rule_id,description,severity,category
 AML_THRESHOLD,"Any single transaction at or above 10,000 USD-equivalent must be reported to the relevant financial-intelligence unit.",high,AML
 STRUCTURING,"Three or more transactions in the 9,000-9,999 USD-equivalent band from the same client within a 5-day window suggest deliberate structuring to evade the AML reporting threshold.",high,AML
 SANCTIONS,Transactions whose counterparty appears on the sanctions list are prohibited regardless of amount or jurisdiction.,high,Sanctions
-KYC_EXPIRED,Transactions executed after the client's KYC expiry date violate Know-Your-Customer requirements.,high,KYC
+KYC_VALIDITY,"Every transaction requires the client to hold a currently-valid Know-Your-Customer record. A transaction violates this rule if the client's KYC is missing, marked expired, or has an expiry date earlier than the transaction date.",high,KYC
 HIGH_RISK_JURISDICTION,Transactions involving counterparties registered in high-risk jurisdictions require enhanced due diligence; absence of EDD marks the transaction non-compliant.,medium,AML
 VELOCITY,More than 10 transactions in any rolling 24-hour window for a medium-risk client (or more than 5 for a high-risk client) constitutes suspicious velocity.,medium,Behavioral
-DORMANT_REACTIVATION,"An account that has been inactive for at least 180 days and then transacts at 5,000 USD-equivalent or above triggers a dormant-account-reactivation alert.",medium,Behavioral
+DORMANT_ACCOUNT_RULE,"An account that has been inactive for at least 180 days and then transacts at 5,000 USD-equivalent or above triggers a dormant-account-reactivation alert.",medium,Behavioral
 ROUND_NUMBER_ANOMALY,"Clusters of round-amount transactions (multiples of 1,000 USD) for small-business clients indicate deliberate rounding intended to obscure activity patterns.",low,Behavioral
