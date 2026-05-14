@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple, runtime_checkable
 
-from .eval_arms import Arm, TxContext, get_arms
+from .eval_arms import Arm, ArmE_KGRelationsPartial, TxContext, get_arms
 from .financial_kg import FinancialKG
 from .retriever import FinancialRetriever
 
@@ -531,19 +531,27 @@ def run(
 
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Four-arm ablation runner")
+    p = argparse.ArgumentParser(description="Ablation runner (arms A/B/C/D/E)")
     p.add_argument("--data-dir", type=Path, default=Path("data"),
                    help="Directory containing the generated CSVs")
     p.add_argument("--out", dest="out_dir", type=Path, default=Path("runs/last"),
-                   help="Directory to write results.csv + summary.json")
+                   help="Output dir. With --repeats > 1, per-repeat subdirs r1/ r2/ ...")
     p.add_argument("--arms", default="A,B,C,D",
-                   help="Comma-separated subset of arms to run (default ABCD)")
+                   help="Comma-separated arm names. 'E' expands to one Arm E "
+                        "instance per value in --arm-e-p")
+    p.add_argument("--arm-e-p", default=None,
+                   help="Comma-separated p_drop values for Arm E "
+                        "(e.g. 0.25,0.5,0.75). Required if E is in --arms.")
     p.add_argument("--limit", type=int, default=None,
                    help="Cap the number of transactions evaluated")
     p.add_argument("--seed", type=int, default=42,
-                   help="Seed for tx-order shuffling (default 42)")
+                   help="Seed for tx-order shuffling AND Arm E dropout (default 42)")
+    p.add_argument("--repeats", type=int, default=1,
+                   help="Number of repeats. >1 writes to per-repeat subdirs r1/, r2/, ... "
+                        "and aggregates total cost across repeats.")
     p.add_argument("--log-file", type=Path, default=None,
-                   help="Optional per-tx JSONL audit log")
+                   help="Optional per-tx JSONL audit log (in --out, or in each "
+                        "r<i>/ subdir if --repeats > 1)")
     p.add_argument("--dry-run", action="store_true",
                    help="Use DryRunLLM (no API calls, no spend)")
     p.add_argument("--verbose", action="store_true",
@@ -553,9 +561,34 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def _build_arms_list(args: argparse.Namespace) -> List[Arm]:
+    """Expand --arms (and --arm-e-p if E is included) into Arm instances."""
+    arms: List[Arm] = []
+    e_ps: Optional[List[float]] = None
+    if args.arm_e_p:
+        e_ps = [float(x.strip()) for x in args.arm_e_p.split(",") if x.strip()]
+
+    for raw in args.arms.split(","):
+        key = raw.strip().upper()
+        if not key:
+            continue
+        if key == "E":
+            if not e_ps:
+                raise SystemExit(
+                    "Arm E requested via --arms but --arm-e-p not provided. "
+                    "Pass e.g. --arm-e-p 0.25,0.5,0.75"
+                )
+            for p in e_ps:
+                arms.append(ArmE_KGRelationsPartial(p_drop=p,
+                                                   dropout_seed=args.seed))
+        else:
+            arms.extend(get_arms([key]))
+    return arms
+
+
 def main(argv: Optional[List[str]] = None) -> None:
     args = _parse_args(argv)
-    arms = get_arms(args.arms.split(","))
+    arms = _build_arms_list(args)
 
     if args.dry_run:
         llm: _LLMLike = DryRunLLM(seed=args.seed)
@@ -566,43 +599,61 @@ def main(argv: Optional[List[str]] = None) -> None:
         llm = FinancialLLM()
         mode = f"LIVE ({llm.model})"
 
+    n_repeats = max(1, args.repeats)
     print(f"=== eval_runner: {mode} ===")
     print(f"  data_dir : {args.data_dir.resolve()}")
     print(f"  out_dir  : {args.out_dir.resolve()}")
     print(f"  arms     : {','.join(a.name for a in arms)}")
     print(f"  limit    : {args.limit if args.limit is not None else 'all'}")
+    print(f"  repeats  : {n_repeats}")
     print()
 
     t0 = time.time()
-    summary = run(
-        data_dir=args.data_dir,
-        out_dir=args.out_dir,
-        arms=arms,
-        llm=llm,
-        limit=args.limit,
-        seed=args.seed,
-        log_file=args.log_file,
-        verbose=args.verbose,
-        budget_cap_usd=args.budget_cap_usd,
-    )
-    elapsed = time.time() - t0
+    summaries = []
+    for r in range(1, n_repeats + 1):
+        repeat_out = args.out_dir if n_repeats == 1 else (args.out_dir / f"r{r}")
+        repeat_log = None
+        if args.log_file is not None:
+            repeat_log = (
+                args.log_file
+                if n_repeats == 1
+                else repeat_out / args.log_file.name
+            )
 
-    print(f"\n=== summary ({elapsed:.1f}s, n={summary['n_transactions']}) ===")
-    for arm_name, m in summary["metrics"].items():
-        acc = m["accuracy"]
-        f1 = m["f1"]
-        acc_s = f"{acc:.3f}" if acc is not None else "n/a"
-        f1_s = f"{f1:.3f}" if f1 is not None else "n/a"
-        print(f"  arm {arm_name}: acc={acc_s}  f1={f1_s}  "
-              f"tp={m['tp']} fp={m['fp']} tn={m['tn']} fn={m['fn']}  "
-              f"unknown={m['n_unknown']}")
-    u = summary.get("usage", {})
-    if u.get("total_cost_usd", 0) > 0:
-        print(f"  ---")
-        print(f"  total tokens : {u['total_tokens']}")
-        print(f"  total cost   : ${u['total_cost_usd']:.4f}")
-        if u.get("budget_hit"):
-            print(f"  !! budget cap ${u['budget_cap_usd']:.4f} was hit; run aborted")
+        if n_repeats > 1:
+            print(f"--- repeat {r}/{n_repeats} -> {repeat_out} ---")
+
+        summary = run(
+            data_dir=args.data_dir,
+            out_dir=repeat_out,
+            arms=arms,
+            llm=llm,
+            limit=args.limit,
+            seed=args.seed,
+            log_file=repeat_log,
+            verbose=args.verbose,
+            budget_cap_usd=args.budget_cap_usd,
+        )
+        summaries.append(summary)
+
+        # Per-repeat stdout summary
+        n_done = summary["n_transactions"]
+        for arm_name, m in summary["metrics"].items():
+            acc = m["accuracy"]; f1 = m["f1"]
+            acc_s = f"{acc:.3f}" if acc is not None else "n/a"
+            f1_s = f"{f1:.3f}" if f1 is not None else "n/a"
+            print(f"  [r{r}] arm {arm_name}: acc={acc_s}  f1={f1_s}  "
+                  f"tp={m['tp']} fp={m['fp']} tn={m['tn']} fn={m['fn']}  "
+                  f"unknown={m['n_unknown']}")
+        u = summary.get("usage", {})
+        if u.get("total_cost_usd", 0) > 0:
+            print(f"  [r{r}] tokens={u['total_tokens']}  cost=${u['total_cost_usd']:.4f}")
+
+    elapsed = time.time() - t0
+    total_cost = sum(s.get("usage", {}).get("total_cost_usd", 0.0) for s in summaries)
+    total_tokens = sum(s.get("usage", {}).get("total_tokens", 0) for s in summaries)
+    print(f"\n=== {n_repeats} repeat(s) in {elapsed:.1f}s "
+          f"— total cost ${total_cost:.4f}, total tokens {total_tokens:,} ===")
 
 
 if __name__ == "__main__":

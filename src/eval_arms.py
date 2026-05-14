@@ -1,5 +1,5 @@
 """
-Four ablation arms used to compare KG-augmented LLM compliance reasoning
+Ablation arms used to compare KG-augmented LLM compliance reasoning
 against weaker grounding modes.
 
   Arm A — vanilla LLM. Transaction + entity attributes only, no rule
@@ -12,10 +12,15 @@ against weaker grounding modes.
           The current default; tests synthesis from explicit relations.
   Arm D — full compliance flag. Base + rule definitions + KG relations +
           the boolean ground-truth label. Upper-bound sanity check.
+  Arm E — KG relations with parametric dropout. Arm C with a fraction
+          `p_drop` of the per-tx KG relations deterministically removed,
+          simulating an incomplete graph where not every compliance
+          relation has been computed yet. Used to trace the degradation
+          curve as KG coverage falls from 100% to 0%.
 
-The four arms share the same "base" context (transaction row, client
-attrs, account attrs, counterparty attrs) so that what they differ on
-is exactly the grounding mode under test — not the surface features.
+The arms share the same "base" context (transaction row, client attrs,
+account attrs, counterparty attrs) so that what they differ on is exactly
+the grounding mode under test — not the surface features.
 
 `build_facts(ctx)` returns the `context_facts` string passed to
 `FinancialLLM.ask_compliance_json(user_message, context_facts)`.
@@ -23,6 +28,8 @@ is exactly the grounding mode under test — not the surface features.
 
 from __future__ import annotations
 
+import hashlib
+import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -221,6 +228,61 @@ class ArmD_GroundTruth(Arm):
         )
 
 
+class ArmE_KGRelationsPartial(Arm):
+    """
+    Arm C with parametric KG-relation dropout.
+
+    For each transaction, a per-tx deterministic RNG is seeded from
+    hash(tx_id, dropout_seed). The RNG draws one uniform sample per
+    KG relation; a relation is dropped if the sample is < p_drop. With
+    the same seed and tx_id, drops are reproducible across repeats —
+    repeats at the same p see identical inputs (only the LLM's residual
+    non-determinism at T=0 varies). Increasing p monotonically drops
+    more relations from the same sequence, so the dropout pattern at
+    p=0.50 is a superset of the pattern at p=0.25.
+
+    Dropout only touches the rule-relation block; the transaction's
+    base context (amounts, client KYC, counterparty, account history,
+    etc.) is preserved in full. This isolates the effect of incomplete
+    KG coverage from any base-context degradation.
+    """
+
+    def __init__(self, p_drop: float, dropout_seed: int = 42) -> None:
+        if not 0.0 <= p_drop <= 1.0:
+            raise ValueError(f"p_drop must be in [0, 1], got {p_drop!r}")
+        self.p_drop = float(p_drop)
+        self.dropout_seed = int(dropout_seed)
+        # Name encodes p (two-digit pct) so metrics dicts cleanly separate
+        # E_p25 / E_p50 / E_p75 / etc.
+        self.name = f"E_p{int(round(self.p_drop * 100)):02d}"
+        self.short_description = (
+            f"KG relations w/ partial dropout p={self.p_drop:.2f} "
+            f"(incomplete-KG stress test)"
+        )
+
+    def _tx_rng(self, tx_id: str) -> random.Random:
+        """Deterministic per-tx RNG seeded from (tx_id, dropout_seed)."""
+        h = hashlib.md5(f"{tx_id}:{self.dropout_seed}".encode("utf-8")).digest()
+        seed_int = int.from_bytes(h[:8], "big", signed=False)
+        return random.Random(seed_int)
+
+    def build_facts(self, ctx: TxContext) -> str:
+        rng = self._tx_rng(ctx.tx_id)
+        kept: List[Dict[str, str]] = []
+        for relation in ctx.kg_relations:
+            if rng.random() >= self.p_drop:
+                kept.append(relation)
+        return (
+            _base_facts(ctx)
+            + "\n"
+            + _rules_block(ctx.rule_definitions)
+            + "\n"
+            + _kg_relations_block(kept)
+        )
+
+
+# Fixed (non-parameterized) arms; Arm E is parameterized and instantiated
+# on demand by the runner from --arm-e-p values.
 ARMS: Dict[str, Arm] = {
     "A": ArmA_Vanilla(),
     "B": ArmB_RuleText(),
@@ -230,13 +292,23 @@ ARMS: Dict[str, Arm] = {
 
 
 def get_arms(names: Optional[List[str]] = None) -> List[Arm]:
-    """Return arm instances by name; preserves declaration order if names=None."""
+    """Return arm instances by name; preserves declaration order if names=None.
+
+    Note: Arm E ("E") is parameterized by p_drop and is NOT in the ARMS
+    registry. The runner expands `--arm-e-p` into one ArmE_KGRelationsPartial
+    instance per p value separately.
+    """
     if not names:
         return [ARMS[k] for k in ("A", "B", "C", "D")]
     out: List[Arm] = []
     for n in names:
         key = n.strip().upper()
+        if key == "E":
+            raise ValueError(
+                "Arm E is parameterized; instantiate ArmE_KGRelationsPartial(p_drop) "
+                "directly via the runner's --arm-e-p flag, not via get_arms()."
+            )
         if key not in ARMS:
-            raise ValueError(f"Unknown arm: {n!r}. Valid: {list(ARMS)}")
+            raise ValueError(f"Unknown arm: {n!r}. Valid: {list(ARMS)} + 'E'")
         out.append(ARMS[key])
     return out
