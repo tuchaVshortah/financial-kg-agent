@@ -147,6 +147,7 @@ def build_tx_context(
         status=tx["status"],
         tx_type=tx.get("tx_type", ""),
         description=tx.get("description", ""),
+        edd_applied=_parse_bool(tx.get("edd_applied")),
         counterparty_id=cp_id,
         counterparty_name=cp.get("name", "?"),
         counterparty_country=tx.get("counterparty_country", cp.get("country", "?")),

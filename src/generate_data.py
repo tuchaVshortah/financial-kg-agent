@@ -74,6 +74,24 @@ FX_RATES_TO_USD: Dict[str, Decimal] = {
 
 TX_TYPES = ["wire", "transfer", "cash_deposit", "cash_withdrawal", "card_payment"]
 
+# Scenario-neutral transaction descriptions, keyed by tx_type. v1--v2 datasets
+# encoded the scenario in the description string (e.g. "Velocity burst tx
+# (5/12)", "Structuring cluster member (4/5)", "EDD applied: enhanced
+# verification complete"), which the language model could read directly --
+# inflating no-KG arm performance on scenarios with rich descriptions
+# (finding F-007). v4 onward uses fully scenario-neutral templates: the
+# description describes the transaction's mechanic, not its compliance
+# scenario. Any compliance-relevant signal that previously lived in the
+# description (the EDD-applied flag for HIGH_RISK_JURISDICTION) is now
+# carried in a dedicated typed field on GenTransaction.
+DESCRIPTION_BY_TX_TYPE: Dict[str, str] = {
+    "wire": "Wire transfer",
+    "transfer": "Account transfer",
+    "cash_deposit": "Cash deposit at branch",
+    "cash_withdrawal": "ATM cash withdrawal",
+    "card_payment": "POS card payment",
+}
+
 # Formal rule definitions. Used by the generator AND surfaced in
 # generation_metadata.json so the eval pipeline (arm B) can load
 # the human-readable text directly.
@@ -230,6 +248,13 @@ class GenTransaction:
     counterparty_country: str
     tx_type: str
     description: str
+    # Whether Enhanced Due Diligence has been performed for this transaction.
+    # Carried as a dedicated field rather than encoded in the description
+    # string so that the description can remain scenario-neutral
+    # (finding F-007). Only meaningful for HIGH_RISK_JURISDICTION-class
+    # transactions; for all other scenarios the default False is correct
+    # and rule-irrelevant.
+    edd_applied: bool
     is_compliant: bool
     # Which scenario generated this tx. Persisted as its own CSV column so
     # per-scenario evaluation breakdowns survive cross-rule labeling (which
@@ -497,6 +522,9 @@ def gen_aml_threshold(
             usd = Decimal(str(rng.uniform(100, 9_500))).quantize(Decimal("0.01"))
 
         amount = _from_usd(usd, currency)
+        # Preserve v2 rng-call order: _date_in_range first, rng.choice(TX_TYPES) second.
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -504,12 +532,13 @@ def gen_aml_threshold(
                 amount=amount,
                 currency=currency,
                 amount_usd=usd,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description=f"AML-scenario tx (target USD={usd})",
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=not is_violation,
                 scenario_rule="AML_THRESHOLD",
                 rule_relations={
@@ -551,6 +580,9 @@ def gen_structuring(
         for k in range(sz):
             usd = Decimal(str(rng.uniform(9_000, 9_999))).quantize(Decimal("0.01"))
             amount = _from_usd(usd, acct.default_currency)
+            # Preserve v2 rng-call order: randint (date offset) first, then choice (tx_type).
+            day_offset = rng.randint(0, 5)
+            chosen_tx_type = rng.choice(TX_TYPES)
             out.append(
                 GenTransaction(
                     tx_id=tx_id_seq(),
@@ -558,12 +590,13 @@ def gen_structuring(
                     amount=amount,
                     currency=acct.default_currency,
                     amount_usd=usd,
-                    date=_datestr(cluster_start + timedelta(days=rng.randint(0, 5))),
+                    date=_datestr(cluster_start + timedelta(days=day_offset)),
                     status="completed",
                     counterparty_id=cp.counterparty_id,
                     counterparty_country=cp.country,
-                    tx_type=rng.choice(TX_TYPES),
-                    description=f"Structuring cluster member ({k+1}/{sz})",
+                    tx_type=chosen_tx_type,
+                    description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                    edd_applied=False,
                     is_compliant=False,
                     scenario_rule="STRUCTURING",
                     rule_relations={"STRUCTURING": "violates"},
@@ -577,6 +610,8 @@ def gen_structuring(
         cp = _pick_normal_counterparty(rng, counterparties)
         usd = Decimal(str(rng.uniform(9_000, 9_999))).quantize(Decimal("0.01"))
         amount = _from_usd(usd, acct.default_currency)
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -584,12 +619,13 @@ def gen_structuring(
                 amount=amount,
                 currency=acct.default_currency,
                 amount_usd=usd,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description="Isolated near-threshold tx (not structuring)",
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=True,
                 scenario_rule="STRUCTURING",
                 rule_relations={"STRUCTURING": "compliant"},
@@ -616,6 +652,8 @@ def gen_sanctions(
               if is_violation else _pick_normal_counterparty(rng, counterparties))
         usd = Decimal(str(rng.uniform(500, 25_000))).quantize(Decimal("0.01"))
         amount = _from_usd(usd, acct.default_currency)
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -623,13 +661,13 @@ def gen_sanctions(
                 amount=amount,
                 currency=acct.default_currency,
                 amount_usd=usd,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description=("Sanctioned-CP tx" if is_violation
-                             else "Normal-CP tx in sanctions scenario"),
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=not is_violation,
                 scenario_rule="SANCTIONS",
                 rule_relations={
@@ -669,6 +707,8 @@ def gen_kyc_expired(
         cp = _pick_normal_counterparty(rng, counterparties)
         usd = Decimal(str(rng.uniform(100, 9_500))).quantize(Decimal("0.01"))
         amount = _from_usd(usd, acct.default_currency)
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -676,13 +716,13 @@ def gen_kyc_expired(
                 amount=amount,
                 currency=acct.default_currency,
                 amount_usd=usd,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description=("Tx after KYC expiry" if is_violation
-                             else "Tx within KYC validity window"),
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=not is_violation,
                 scenario_rule="KYC_VALIDITY",
                 rule_relations={
@@ -699,9 +739,13 @@ def gen_high_risk_jurisdiction(
 ) -> List[GenTransaction]:
     """
     HIGH_RISK_JURISDICTION: counterparty.country in HIGH_RISK_COUNTRIES.
-    Non-compliant: high-risk CP, no enhanced due diligence (modeled as
-    description == "no EDD applied"). Compliant: same high-risk CP but
-    description marks EDD applied; OR a normal-jurisdiction CP.
+    Non-compliant: high-risk CP, no enhanced due diligence (edd_applied=False).
+    Compliant: same high-risk CP but edd_applied=True; OR a normal-jurisdiction
+    CP (rule does not apply at all).
+
+    Note: the EDD-applied signal is carried in the typed `edd_applied` field
+    rather than encoded in the description, so that the description can remain
+    scenario-neutral (finding F-007).
     """
     out: List[GenTransaction] = []
     for i in range(total):
@@ -709,17 +753,19 @@ def gen_high_risk_jurisdiction(
         acct = _pick_account(rng, accounts)
         if is_violation:
             cp = _pick_high_risk_counterparty(rng, counterparties)
-            desc = "no EDD applied"
+            edd_applied_val = False
         else:
             # Half compliant cases use high-risk CP w/ EDD, half normal CP
             if rng.random() < 0.5:
                 cp = _pick_high_risk_counterparty(rng, counterparties)
-                desc = "EDD applied: enhanced verification complete"
+                edd_applied_val = True
             else:
                 cp = _pick_normal_counterparty(rng, counterparties)
-                desc = "Normal-jurisdiction tx"
+                edd_applied_val = False
         usd = Decimal(str(rng.uniform(500, 20_000))).quantize(Decimal("0.01"))
         amount = _from_usd(usd, acct.default_currency)
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -727,12 +773,13 @@ def gen_high_risk_jurisdiction(
                 amount=amount,
                 currency=acct.default_currency,
                 amount_usd=usd,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description=desc,
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=edd_applied_val,
                 is_compliant=not is_violation,
                 scenario_rule="HIGH_RISK_JURISDICTION",
                 rule_relations={
@@ -780,6 +827,7 @@ def gen_velocity(
             cp = _pick_normal_counterparty(rng, counterparties)
             usd = Decimal(str(rng.uniform(50, 2_000))).quantize(Decimal("0.01"))
             amount = _from_usd(usd, acct.default_currency)
+            chosen_tx_type = rng.choice(TX_TYPES)
             out.append(
                 GenTransaction(
                     tx_id=tx_id_seq(),
@@ -791,8 +839,9 @@ def gen_velocity(
                     status="completed",
                     counterparty_id=cp.counterparty_id,
                     counterparty_country=cp.country,
-                    tx_type=rng.choice(TX_TYPES),
-                    description=f"Velocity burst tx ({k+1}/{sz})",
+                    tx_type=chosen_tx_type,
+                    description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                    edd_applied=False,
                     is_compliant=False,
                     scenario_rule="VELOCITY",
                     rule_relations={"VELOCITY": "violates"},
@@ -809,6 +858,7 @@ def gen_velocity(
             cp = _pick_normal_counterparty(rng, counterparties)
             usd = Decimal(str(rng.uniform(50, 2_000))).quantize(Decimal("0.01"))
             amount = _from_usd(usd, acct.default_currency)
+            chosen_tx_type = rng.choice(TX_TYPES)
             out.append(
                 GenTransaction(
                     tx_id=tx_id_seq(),
@@ -820,8 +870,9 @@ def gen_velocity(
                     status="completed",
                     counterparty_id=cp.counterparty_id,
                     counterparty_country=cp.country,
-                    tx_type=rng.choice(TX_TYPES),
-                    description=f"Compliant low-velocity cluster ({k+1}/{sz})",
+                    tx_type=chosen_tx_type,
+                    description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                    edd_applied=False,
                     is_compliant=True,
                     scenario_rule="VELOCITY",
                     rule_relations={"VELOCITY": "compliant"},
@@ -862,6 +913,7 @@ def gen_dormant_reactivation(
                 # below-trigger amount even after long dormancy
                 usd = Decimal(str(rng.uniform(100, 4_900))).quantize(Decimal("0.01"))
         amount = _from_usd(usd, acct.default_currency)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -873,9 +925,9 @@ def gen_dormant_reactivation(
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description=("Reactivation after long dormancy" if is_violation
-                             else "Tx within normal activity window"),
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=not is_violation,
                 scenario_rule="DORMANT_ACCOUNT_RULE",
                 rule_relations={
@@ -922,6 +974,8 @@ def gen_round_number_anomaly(
             usd_round = Decimal(rng.choice([1_000, 2_000, 3_000, 5_000, 10_000]))
             amount = _from_usd(usd_round, acct.default_currency)
             cp = _pick_normal_counterparty(rng, counterparties)
+            day_offset = rng.randint(0, 7)
+            chosen_tx_type = rng.choice(TX_TYPES)
             out.append(
                 GenTransaction(
                     tx_id=tx_id_seq(),
@@ -929,12 +983,13 @@ def gen_round_number_anomaly(
                     amount=amount,
                     currency=acct.default_currency,
                     amount_usd=usd_round,
-                    date=_datestr(cluster_start + timedelta(days=rng.randint(0, 7))),
+                    date=_datestr(cluster_start + timedelta(days=day_offset)),
                     status="completed",
                     counterparty_id=cp.counterparty_id,
                     counterparty_country=cp.country,
-                    tx_type=rng.choice(TX_TYPES),
-                    description=f"Round-amount SB cluster ({k+1}/{sz})",
+                    tx_type=chosen_tx_type,
+                    description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                    edd_applied=False,
                     is_compliant=False,
                     scenario_rule="ROUND_NUMBER_ANOMALY",
                     rule_relations={"ROUND_NUMBER_ANOMALY": "violates"},
@@ -947,6 +1002,8 @@ def gen_round_number_anomaly(
         cp = _pick_normal_counterparty(rng, counterparties)
         usd_round = Decimal(rng.choice([1_000, 2_000, 5_000]))
         amount = _from_usd(usd_round, acct.default_currency)
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -954,12 +1011,13 @@ def gen_round_number_anomaly(
                 amount=amount,
                 currency=acct.default_currency,
                 amount_usd=usd_round,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description="Isolated round-amount tx (not SB cluster)",
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=True,
                 scenario_rule="ROUND_NUMBER_ANOMALY",
                 rule_relations={"ROUND_NUMBER_ANOMALY": "compliant"},
@@ -988,6 +1046,8 @@ def gen_normal(
         cp = _pick_normal_counterparty(rng, counterparties)
         usd = Decimal(str(rng.uniform(20, 4_900))).quantize(Decimal("0.01"))
         amount = _from_usd(usd, acct.default_currency)
+        tx_date = _date_in_range(rng, start_date, end_date)
+        chosen_tx_type = rng.choice(TX_TYPES)
         out.append(
             GenTransaction(
                 tx_id=tx_id_seq(),
@@ -995,12 +1055,13 @@ def gen_normal(
                 amount=amount,
                 currency=acct.default_currency,
                 amount_usd=usd,
-                date=_datestr(_date_in_range(rng, start_date, end_date)),
+                date=_datestr(tx_date),
                 status="completed",
                 counterparty_id=cp.counterparty_id,
                 counterparty_country=cp.country,
-                tx_type=rng.choice(TX_TYPES),
-                description="Normal compliant tx (negative class)",
+                tx_type=chosen_tx_type,
+                description=DESCRIPTION_BY_TX_TYPE[chosen_tx_type],
+                edd_applied=False,
                 is_compliant=True,
                 scenario_rule="NORMAL",
                 rule_relations={},
@@ -1052,14 +1113,16 @@ def _check_kyc_validity(tx: GenTransaction, client: GenClient) -> bool:
 def _check_high_risk_jurisdiction(tx: GenTransaction) -> bool:
     """
     Fires if the counterparty country is in HIGH_RISK_COUNTRIES AND the
-    transaction description does not contain an explicit 'EDD applied'
-    marker (which signals enhanced due diligence was performed).
+    enhanced-due-diligence flag is False.
+
+    Previously this check read an 'EDD applied' substring out of the
+    description string; that approach forced the description to encode
+    the rule-evaluation signal and so leaked the scenario to no-KG arms
+    (F-007). The signal now lives in the typed `tx.edd_applied` field.
     """
     if tx.counterparty_country not in HIGH_RISK_COUNTRIES:
         return False
-    desc = tx.description.lower()
-    # "no edd applied" should NOT count as EDD applied — handle it explicitly
-    return not ("edd applied" in desc and "no edd applied" not in desc)
+    return not tx.edd_applied
 
 
 def _check_dormant_account_rule(tx: GenTransaction, account: GenAccount) -> bool:
@@ -1318,6 +1381,7 @@ def _write_transactions_csv(path: Path, txs: Sequence[GenTransaction]) -> None:
             "tx_id", "account_id", "amount", "currency", "amount_usd",
             "date", "status", "is_compliant", "scenario_rule", "rule_ids",
             "counterparty_id", "counterparty_country", "tx_type", "description",
+            "edd_applied",
         ])
         for t in txs:
             w.writerow([
@@ -1328,6 +1392,7 @@ def _write_transactions_csv(path: Path, txs: Sequence[GenTransaction]) -> None:
                 t.scenario_rule,
                 ",".join(t.rule_ids),
                 t.counterparty_id, t.counterparty_country, t.tx_type, t.description,
+                "true" if t.edd_applied else "false",
             ])
 
 

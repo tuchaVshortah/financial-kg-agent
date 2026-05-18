@@ -52,28 +52,33 @@ class TxContext:
     status: str
     tx_type: str
     description: str
+    # Whether enhanced due diligence has been performed on this tx. Surfaced
+    # as a typed field rather than encoded in the description string so the
+    # description can stay scenario-neutral (F-007). Only rule-relevant for
+    # HIGH_RISK_JURISDICTION; carries default False for all other scenarios.
+    edd_applied: bool = False
 
     # Counterparty attributes
-    counterparty_id: str
-    counterparty_name: str
-    counterparty_country: str
-    counterparty_on_sanctions_list: bool
+    counterparty_id: str = ""
+    counterparty_name: str = ""
+    counterparty_country: str = ""
+    counterparty_on_sanctions_list: bool = False
 
     # Client attributes
-    client_id: str
-    client_name: str
-    client_risk_level: str
-    client_kyc_status: str
-    client_kyc_expiry_date: str
-    client_country: str
-    client_pep_flag: bool
+    client_id: str = ""
+    client_name: str = ""
+    client_risk_level: str = ""
+    client_kyc_status: str = ""
+    client_kyc_expiry_date: str = ""
+    client_country: str = ""
+    client_pep_flag: bool = False
 
     # Account attributes
-    account_id: str
-    account_type: str
-    account_default_currency: str
-    account_open_date: str
-    account_last_active_date: str
+    account_id: str = ""
+    account_type: str = ""
+    account_default_currency: str = ""
+    account_open_date: str = ""
+    account_last_active_date: str = ""
 
     # Grounding inputs (only consumed by arms that use them)
     rule_definitions: Dict[str, Dict[str, str]] = field(default_factory=dict)
@@ -93,6 +98,7 @@ def _base_facts(ctx: TxContext) -> str:
         f"  date           : {ctx.date}\n"
         f"  type           : {ctx.tx_type}\n"
         f"  status         : {ctx.status}\n"
+        f"  EDD applied    : {'yes' if ctx.edd_applied else 'no'}\n"
         f"  description    : {ctx.description}\n"
         f"\n"
         f"COUNTERPARTY {ctx.counterparty_id}\n"
