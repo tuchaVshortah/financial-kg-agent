@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 
-REPORT_PATH = Path("runs/full_v3b/aggregated_summary.json")
+REPORT_PATH = Path("runs/full_v4_combined/aggregated_summary.json")
 FIGURES_DIR = Path("figures")
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -73,16 +73,24 @@ def fig_degradation_curve(report: dict) -> None:
     ps = [pt["p"] for pt in points]
     accs = [pt["acc"] for pt in points]
 
-    # F1 isn't in crossover_analysis; pull from overall
+    # F1 isn't in crossover_analysis; pull from overall.
+    # Some Arm E variants in v4 have F1 = None (recall == 0 so the harmonic
+    # mean is undefined); represent these as NaN so matplotlib breaks the line.
     arm_name_for_p = {
         0.00: "C", 0.25: "E_p25", 0.50: "E_p50", 0.75: "E_p75",
         0.85: "E_p85", 0.95: "E_p95", 1.00: "E_p100",
     }
-    f1s = [report["overall"][arm_name_for_p[p]]["f1"]["mean"] for p in ps]
+    def _f1(p):
+        d = report["overall"][arm_name_for_p[p]].get("f1")
+        if d is None or d.get("mean") is None:
+            return float("nan")
+        return d["mean"]
+    f1s = [_f1(p) for p in ps]
 
     A_acc = report["overall"]["A"]["acc"]["mean"]
     B_acc = report["overall"]["B"]["acc"]["mean"]
     C_acc = report["overall"]["C"]["acc"]["mean"]
+    D_acc = report["overall"]["D"]["acc"]["mean"]
 
     fig, ax = plt.subplots(figsize=(6.4, 4.2))
 
@@ -91,22 +99,37 @@ def fig_degradation_curve(report: dict) -> None:
     ax.plot(ps, f1s, marker="s", color="#1f3a93", linewidth=1.4,
             linestyle="--", alpha=0.7, label="Arm E F1")
 
+    # Reference horizontals. In v4 Arms A and B are close (0.643 / 0.648)
+    # and well below Arm C (0.891); Arm D sits at the ceiling.
     ax.axhline(A_acc, color="#888", linestyle=":", linewidth=1.0)
     ax.axhline(B_acc, color="#555", linestyle="-.", linewidth=1.0)
     ax.axhline(C_acc, color="#1f3a93", linestyle="-", linewidth=0.6, alpha=0.4)
+    ax.axhline(D_acc, color="#1f3a93", linestyle=":", linewidth=0.6, alpha=0.4)
 
-    # Reference labels at the right edge
-    ax.text(1.01, A_acc, f" Arm A = {A_acc:.3f}",
+    # Right-edge labels. Stagger A and B vertically so they don't overlap.
+    ax.text(1.01, A_acc - 0.008, f" Arm A = {A_acc:.3f}",
             va="center", fontsize=8.5, color="#666")
-    ax.text(1.01, B_acc, f" Arm B = {B_acc:.3f}",
+    ax.text(1.01, B_acc + 0.008, f" Arm B = {B_acc:.3f}",
             va="center", fontsize=8.5, color="#444")
-    ax.text(1.01, C_acc, f" Arm C / D = {C_acc:.3f}",
+    ax.text(1.01, C_acc, f" Arm C = {C_acc:.3f}",
+            va="center", fontsize=8.5, color="#1f3a93")
+    ax.text(1.01, D_acc, f" Arm D = {D_acc:.3f}",
             va="center", fontsize=8.5, color="#1f3a93")
 
-    # Highlight that E_p100 is STILL above B
+    # Highlight where the curve crosses Arm B and where E_p100 lands
+    p_star = report.get("crossover_analysis", {}).get("linear_crossing_p")
+    if p_star is not None:
+        ax.axvline(p_star, color="#aa5500", linestyle="--", linewidth=0.8,
+                   alpha=0.7)
+        ax.text(p_star + 0.01, 0.78,
+                f"E crosses B at\n$p^*\\approx{p_star:.2f}$",
+                fontsize=8, color="#aa5500", ha="left")
+
+    delta = accs[-1] - B_acc
+    sign = "above" if delta > 0 else "below"
     ax.annotate(
-        f"E_p100 = {accs[-1]:.3f}\n($+{accs[-1] - B_acc:.3f}$ above B)",
-        xy=(1.0, accs[-1]), xytext=(0.72, 0.85),
+        f"E_p100 = {accs[-1]:.3f}\n({abs(delta):.3f} {sign} B)",
+        xy=(1.0, accs[-1]), xytext=(0.40, 0.72),
         fontsize=8.5, ha="left", color="#333",
         arrowprops=dict(arrowstyle="->", color="#555", lw=0.6),
     )
@@ -114,7 +137,7 @@ def fig_degradation_curve(report: dict) -> None:
     ax.set_xlabel("KG-relation dropout probability $p$")
     ax.set_ylabel("Accuracy / F1")
     ax.set_xlim(-0.04, 1.22)
-    ax.set_ylim(0.60, 1.04)
+    ax.set_ylim(0.55, 1.04)
     # Use 0.0, 0.25, 0.5, 0.75, 1.0 as major ticks (0.85/0.95 marked by data
     # points but skipped from the tick line to prevent overlap on the right edge).
     ax.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
@@ -240,30 +263,30 @@ def fig_firing_count_strata(report: dict) -> None:
                 marker=marker, markersize=5, linewidth=1.5,
                 label=fc_labels[fc])
 
-    ax.axhspan(0.99, 1.005, color="#2ca02c", alpha=0.08)
-    ax.text(1.005, 0.995, " fc$\\geq$3 immunity\n region", fontsize=8,
-            color="#2ca02c", va="top")
-
     ax.set_xlabel("KG-relation dropout probability $p$")
     ax.set_ylabel("Accuracy")
     ax.set_xlim(0.18, 1.22)
-    ax.set_ylim(0.50, 1.04)
+    ax.set_ylim(-0.04, 1.04)
     ax.set_xticks([0.25, 0.5, 0.75, 1.0])
     ax.set_xticks([0.85, 0.95], minor=True)
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.2f}"))
     ax.tick_params(axis="x", which="minor", labelsize=7, length=3, pad=12)
     ax.xaxis.set_minor_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.2f}"))
     ax.set_title("Arm E accuracy stratified by firing-count")
-    ax.legend(loc="lower left", ncol=2, fontsize=8.5)
+    ax.legend(loc="center right", ncol=2, fontsize=8.5)
 
-    # Annotate the fc=1 rebound at high p — a real effect worth explaining
+    # v4 story: the fc=0 line collapses sharply while fc>=1 cluster at the
+    # ceiling. The ceiling-clustering is NOT meaningful reasoning — it's the
+    # LLM defaulting to non-compliant, which is "correct" by accident for
+    # any tx that truly has at least one firing rule. The compliant (fc=0)
+    # population is where the cost of that default shows up.
     ax.annotate(
-        "fc=1 rebound: at high $p$ the LLM's\n"
-        "default-to-non-compliant bias matches\n"
-        "the truly-non-compliant fc=1 class",
-        xy=(0.95, 0.875), xytext=(0.30, 0.62),
-        fontsize=7.5, color="#aa5500",
-        arrowprops=dict(arrowstyle="->", color="#aa5500", lw=0.6),
+        "fc=0 collapse: as KG coverage falls, the LLM\n"
+        "defaults to non-compliant — correct \"for free\"\n"
+        "on every fc$\\geq$1 tx, but catastrophic on fc=0",
+        xy=(0.5, 0.07), xytext=(0.31, 0.30),
+        fontsize=8, color="#aa3322",
+        arrowprops=dict(arrowstyle="->", color="#aa3322", lw=0.6),
     )
 
     _save(fig, "fig_firing_count_strata")
@@ -277,15 +300,21 @@ def fig_firing_count_strata(report: dict) -> None:
 def fig_error_asymmetry(report: dict) -> None:
     """
     Two panels:
-      Left:  missed-violation rate (1 - precision)
-             = FP / (TP + FP)
-             = of "compliant" predictions, fraction wrongly cleared.
-      Right: spurious-alarm rate
-             = FN / (FN + TN)
-             = of "non-compliant" predictions, fraction wrongly flagged.
+      Left:  violation miss rate = FP / (FP + TN)
+             = of all truly non-compliant tx, fraction wrongly cleared.
+             (Positive class is is_compliant=true, so FP = predicted
+              compliant but actually non-compliant.) This is the
+             operationally worst error in an AML setting.
+      Right: false-flag rate    = FN / (FN + TP)
+             = of all truly compliant tx, fraction wrongly flagged
+             non-compliant.
 
-    Plotted across p with Arms A and B as reference lines (their values
-    are evaluated identically: FP/(TP+FP) for A and B too).
+    Both denominators are population-stable (the truly-non-compliant and
+    truly-compliant counts are fixed by the dataset), so the metrics
+    remain well-defined even when the model predicts one class for
+    nearly all tx.
+
+    Plotted across p with Arms A and B as reference lines.
     """
     arms_p = [("C", 0.00), ("E_p25", 0.25), ("E_p50", 0.50), ("E_p75", 0.75),
               ("E_p85", 0.85), ("E_p95", 0.95), ("E_p100", 1.00)]
@@ -293,9 +322,9 @@ def fig_error_asymmetry(report: dict) -> None:
     def rates_for(arm):
         m = report["overall"][arm]
         tp, fp, tn, fn = m["tp"], m["fp"], m["tn"], m["fn"]
-        miss = fp / (tp + fp) if (tp + fp) else float("nan")
-        spurious = fn / (fn + tn) if (fn + tn) else float("nan")
-        return miss, spurious
+        miss = fp / (fp + tn) if (fp + tn) else float("nan")
+        flag = fn / (fn + tp) if (fn + tp) else float("nan")
+        return miss, flag
 
     ps = [p for _, p in arms_p]
     miss_es = []
@@ -312,7 +341,7 @@ def fig_error_asymmetry(report: dict) -> None:
 
     # Panel left
     axL.plot(ps, miss_es, marker="o", color="#b9293c", linewidth=1.8,
-             label="Arm E missed-violation rate")
+             label="Arm E violation-miss rate")
     axL.axhline(miss_A, color="#888", linestyle=":", linewidth=1.0)
     axL.axhline(miss_B, color="#555", linestyle="-.", linewidth=1.0)
     axL.text(1.03, miss_A, f" A={miss_A:.3f}", va="center",
@@ -321,11 +350,11 @@ def fig_error_asymmetry(report: dict) -> None:
              fontsize=8.5, color="#444")
     axL.set_xlabel("KG-relation dropout probability $p$")
     axL.set_ylabel("Error rate")
-    axL.set_title("Missed-violation rate\n"
-                  "FP/(TP+FP) — operationally worse",
+    axL.set_title("Violation miss rate\n"
+                  "FP/(FP+TN) — operationally worse",
                   pad=8)
     axL.set_xlim(-0.04, 1.22)
-    axL.set_ylim(0.0, 0.40)
+    axL.set_ylim(-0.02, 1.05)
     axL.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
     axL.set_xticks([0.85, 0.95], minor=True)
     axL.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.2f}"))
@@ -335,7 +364,7 @@ def fig_error_asymmetry(report: dict) -> None:
 
     # Panel right
     axR.plot(ps, spur_es, marker="s", color="#1f3a93", linewidth=1.8,
-             label="Arm E spurious-alarm rate")
+             label="Arm E false-flag rate")
     axR.axhline(spur_A, color="#888", linestyle=":", linewidth=1.0)
     axR.axhline(spur_B, color="#555", linestyle="-.", linewidth=1.0)
     axR.text(1.03, spur_A, f" A={spur_A:.3f}", va="center",
@@ -343,8 +372,8 @@ def fig_error_asymmetry(report: dict) -> None:
     axR.text(1.03, spur_B, f" B={spur_B:.3f}", va="center",
              fontsize=8.5, color="#444")
     axR.set_xlabel("KG-relation dropout probability $p$")
-    axR.set_title("Spurious-alarm rate\n"
-                  "FN/(FN+TN) — annoying but safe",
+    axR.set_title("False-flag rate\n"
+                  "FN/(FN+TP) — over-flagging compliant tx",
                   pad=8)
     axR.set_xlim(-0.04, 1.22)
     axR.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
