@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Optional, Dict, Any
 import json
 
-from financial_kg import FinancialKG
-from financial_llm import FinancialLLM
-from retriever import FinancialRetriever
+from .financial_kg import FinancialKG
+from .financial_llm import FinancialLLM
+from .retriever import FinancialRetriever
 
 
 class FinancialController:

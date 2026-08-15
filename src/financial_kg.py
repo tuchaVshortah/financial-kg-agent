@@ -218,15 +218,24 @@ class FinancialKG:
 
         txs: List[Dict[str, Any]] = []
         for row in results:
+            ic = row.isCompliant
+            if ic is None:
+                is_compliant: Optional[bool] = None
+            else:
+                # rdflib xsd:boolean → Python bool via toPython();
+                # bool(Literal('false')) is True (non-empty string), so don't use it.
+                val = ic.toPython() if hasattr(ic, "toPython") else ic
+                is_compliant = val if isinstance(val, bool) else str(val).lower() == "true"
+
             txs.append(
                 {
                     "tx_uri": str(row.tx),
                     "account_uri": str(row.account),
-                    "amount": float(row.amount) if row.amount else None,
+                    "amount": float(row.amount) if row.amount is not None else None,
                     "currency": str(row.currency) if row.currency else None,
                     "date": str(row.date) if row.date else None,
                     "status": str(row.status) if row.status else None,
-                    "is_compliant": bool(row.isCompliant) if row.isCompliant else None,
+                    "is_compliant": is_compliant,
                 }
             )
         return txs
@@ -235,18 +244,29 @@ class FinancialKG:
         """
         Return a structured view of which rules a transaction is compliant with
         (or violates), suitable for conversion into natural language by the LLM.
+
+        Uses UNION rather than two OPTIONAL blocks sharing `?rule`: the older
+        form silently dropped relations when a single transaction had both
+        compliantWith and violatesRule triples (the cross-rule-labeled state
+        after the F-002 fix).
         """
         t_uri = self.tx_uri(tx_id)
         query = f"""
         PREFIX ex: <{self.base_iri}>
         SELECT ?rule ?rel
         WHERE {{
-            OPTIONAL {{ <{t_uri}> ex:isCompliantWith ?rule . BIND("compliantWith" AS ?rel) }}
-            OPTIONAL {{ <{t_uri}> ex:violatesRule ?rule . BIND("violatesRule" AS ?rel) }}
+            {{ <{t_uri}> ex:isCompliantWith ?rule . BIND("compliantWith" AS ?rel) }}
+            UNION
+            {{ <{t_uri}> ex:violatesRule ?rule . BIND("violatesRule" AS ?rel) }}
         }}
         """
         rules = []
+        seen = set()
         for row in self.graph.query(query):
+            key = (str(row.rule), str(row.rel))
+            if key in seen:
+                continue
+            seen.add(key)
             rules.append(
                 {
                     "rule_uri": str(row.rule),
@@ -346,8 +366,13 @@ class FinancialKG:
                 for row in reader:
                     amount = self._parse_decimal(row.get("amount"))
                     is_compliant = self._parse_bool(row.get("is_compliant"))
-                    rule_ids = self._parse_rule_ids(row.get("rule_ids"))
 
+                    # Intentionally pass rule_ids=None: under cross-rule
+                    # labeling a single tx may carry mixed per-rule relations
+                    # (some compliant, some violating), and add_transaction's
+                    # legacy logic (derive relation from is_compliant for all
+                    # listed rules) would invert half of them. The authoritative
+                    # per-rule relations come from tx_rules.csv below.
                     tx = Transaction(
                         tx_id=row["tx_id"],
                         account_id=row["account_id"],
@@ -357,7 +382,7 @@ class FinancialKG:
                         date=row.get("date") or "1970-01-01",
                         status=row.get("status") or None,
                         is_compliant=is_compliant,
-                        rule_ids=rule_ids,
+                        rule_ids=None,
                     )
                     self.add_transaction(tx)
 

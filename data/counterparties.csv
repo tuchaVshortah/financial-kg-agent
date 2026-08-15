@@ -1,0 +1,101 @@
+counterparty_id,name,country,on_sanctions_list
+CP_SAN_01,Sanctioned Entity 1,BY,true
+CP_SAN_02,Sanctioned Entity 2,MM,true
+CP_SAN_03,Sanctioned Entity 3,MM,true
+CP_SAN_04,Sanctioned Entity 4,RU,true
+CP_SAN_05,Sanctioned Entity 5,BY,true
+CP_SAN_06,Sanctioned Entity 6,MM,true
+CP_SAN_07,Sanctioned Entity 7,AF,true
+CP_SAN_08,Sanctioned Entity 8,KP,true
+CP_SAN_09,Sanctioned Entity 9,KP,true
+CP_SAN_10,Sanctioned Entity 10,SY,true
+CP_001,"Vaughn, Marquez and Ross",GB,false
+CP_002,"Santos, Kim and Holmes",JP,false
+CP_003,Wright Inc,CA,false
+CP_004,Smith-Spencer,TR,false
+CP_005,"Robinson, Jones and Welch",AU,false
+CP_006,Jones Inc,AU,false
+CP_007,Jones-Young,IT,false
+CP_008,"Washington, Ryan and Cummings",TR,false
+CP_009,"Johnston, Sanchez and Kennedy",AF,false
+CP_010,Lee-Davis,KZ,false
+CP_011,Gomez-Jenkins,AU,false
+CP_012,"Brown, Valdez and Lucas",AE,false
+CP_013,Powell LLC,CA,false
+CP_014,Wright and Sons,GB,false
+CP_015,"West, Henderson and Ramirez",IR,false
+CP_016,Baxter Inc,GB,false
+CP_017,Morton-Chase,IT,false
+CP_018,Williams PLC,AU,false
+CP_019,Novak and Sons,JP,false
+CP_020,Russell Group,GB,false
+CP_021,Hancock Inc,JP,false
+CP_022,Gray Group,CA,false
+CP_023,House-Glover,DE,false
+CP_024,Henderson-Bernard,TR,false
+CP_025,"Stanley, Tucker and Lee",NL,false
+CP_026,Novak PLC,AE,false
+CP_027,"Daniels, Adkins and Brown",US,false
+CP_028,"Woods, Calhoun and Schmidt",KZ,false
+CP_029,Yu Inc,KZ,false
+CP_030,Jones Inc,BR,false
+CP_031,"Hensley, Powell and David",GB,false
+CP_032,"Sanchez, Wheeler and Harvey",JP,false
+CP_033,Sandoval-Cunningham,JP,false
+CP_034,Donovan-Harris,IT,false
+CP_035,"Edwards, Baker and Anderson",AU,false
+CP_036,"Evans, Stewart and Walton",PL,false
+CP_037,Smith PLC,FR,false
+CP_038,"Ferrell, Jones and Lewis",DE,false
+CP_039,Anderson-Bailey,JP,false
+CP_040,Suarez LLC,DE,false
+CP_041,Moore-Bass,JP,false
+CP_042,"Turner, Riggs and Roman",DE,false
+CP_043,"Smith, Montoya and Evans",GB,false
+CP_044,"Garcia, Humphrey and Baker",IT,false
+CP_045,Newton and Sons,AU,false
+CP_046,Campbell-Clark,PL,false
+CP_047,Harris-Walters,MM,false
+CP_048,Wagner-King,AE,false
+CP_049,Davis Group,AE,false
+CP_050,Williams-Cook,KZ,false
+CP_051,Walsh LLC,TR,false
+CP_052,Figueroa PLC,KZ,false
+CP_053,"Patterson, Smith and Jones",CA,false
+CP_054,"Mckee, Gardner and Davenport",AE,false
+CP_055,"Tran, Jordan and Williams",AU,false
+CP_056,Nolan-Flynn,BR,false
+CP_057,Nolan and Sons,ES,false
+CP_058,"Wright, Garcia and Deleon",AU,false
+CP_059,Dickson-Brady,US,false
+CP_060,Hancock and Sons,JP,false
+CP_061,Johnson-Doyle,NL,false
+CP_062,Patton-Jenkins,BR,false
+CP_063,"Shields, Cochran and Adams",AU,false
+CP_064,"Rodriguez, Brennan and Garrison",US,false
+CP_065,Gonzalez Group,IT,false
+CP_066,Torres-Pope,PL,false
+CP_067,Walker Ltd,CA,false
+CP_068,Ross LLC,IT,false
+CP_069,Rasmussen LLC,FR,false
+CP_070,May-Ross,SG,false
+CP_071,"Rivera, Johnson and Wiley",AE,false
+CP_072,White-Estes,KZ,false
+CP_073,Johnson-Carlson,VE,false
+CP_074,Chandler-Edwards,AE,false
+CP_075,"Joyce, Wilson and Lam",PL,false
+CP_076,Scott Ltd,SY,false
+CP_077,Smith-Frost,AE,false
+CP_078,"Mcdaniel, Bentley and Mclaughlin",TR,false
+CP_079,Diaz Inc,RU,false
+CP_080,"Mccall, Hanson and Alvarado",GB,false
+CP_081,Cortez LLC,FR,false
+CP_082,"Parker, Ortiz and Powell",TR,false
+CP_083,Spencer-Lee,SG,false
+CP_084,"Bentley, Byrd and Orr",NL,false
+CP_085,"Carroll, Sullivan and Bass",TR,false
+CP_086,Mitchell-Jordan,IT,false
+CP_087,"Lawson, Morris and Ramos",US,false
+CP_088,"Lewis, Kennedy and Santana",GB,false
+CP_089,"Jackson, Miller and Robertson",JP,false
+CP_090,"Harvey, Davis and Crane",DE,false

@@ -1,3 +1,51 @@
-client_id,name,risk_level
-A,Client A,medium
-B,Client B,high
+client_id,name,risk_level,kyc_status,kyc_expiry_date,country,pep_flag
+C001,"Rodriguez, Figueroa and Sanchez",low,valid,2026-07-22,SG,false
+C002,Doyle Ltd,low,expired,2022-05-20,DE,true
+C003,Kimberly Garza,low,valid,2025-09-19,FR,false
+C004,Brandon Hall,low,expired,2023-07-19,RU,false
+C005,Kristina Baldwin,low,valid,2025-09-11,KZ,false
+C006,Jennifer Cole,high,valid,2026-04-02,IR,false
+C007,Sean Blake,low,valid,2027-08-25,TR,false
+C008,Wolfe LLC,low,valid,2025-09-05,MM,false
+C009,Daniel Gallagher,low,valid,2026-08-09,IR,false
+C010,James Howard,low,valid,2027-01-25,MM,false
+C011,Dennis Williams,medium,valid,2025-11-18,DE,false
+C012,Calvin Nielsen,low,valid,2025-12-10,ES,false
+C013,Edward Fuller,low,valid,2026-10-22,AF,false
+C014,Heidi Lee,low,valid,2027-05-29,AE,false
+C015,Matthew Mejia,medium,valid,2025-12-08,AE,false
+C016,Dr. Sharon James,medium,valid,2025-10-16,SG,false
+C017,Roy Martin,low,valid,2026-07-17,AF,false
+C018,Michael Miles,low,expired,2022-04-28,US,false
+C019,Andrea Reid,medium,missing,1970-01-01,TR,false
+C020,Danielle Ford,low,expired,2023-10-06,DE,false
+C021,Timothy Watts,medium,valid,2027-05-06,AF,false
+C022,Frederick Tate,low,valid,2026-02-01,VE,false
+C023,Rodney Trujillo,medium,missing,1970-01-01,IT,false
+C024,Austin Gentry,high,valid,2025-09-03,MM,false
+C025,Michelle Lewis,medium,valid,2027-06-24,TR,false
+C026,Foster-Rocha,medium,valid,2026-12-08,SY,false
+C027,Derek Wright,low,valid,2027-12-20,PL,false
+C028,"Ryan, Burgess and Patterson",low,valid,2025-10-04,ES,false
+C029,Heidi Osborn,low,expired,2023-11-07,IR,false
+C030,Hicks Inc,medium,valid,2027-11-29,RU,false
+C031,Shannon Hernandez,high,valid,2026-04-11,DE,false
+C032,Michael Carlson,medium,valid,2025-08-20,AF,false
+C033,James-Ferrell,medium,expired,2023-05-04,PL,false
+C034,Tricia Valencia,medium,expired,2023-07-17,NL,false
+C035,Nathan Maldonado,low,valid,2026-09-06,AF,false
+C036,Debra Davidson,high,valid,2026-02-07,MM,false
+C037,Jeffrey Chavez,high,valid,2025-08-20,BR,false
+C038,"Liu, Baker and Mason",low,valid,2026-12-02,KZ,false
+C039,Romero Inc,low,expired,2022-11-14,MM,false
+C040,Elizabeth Fowler,medium,valid,2026-09-02,MM,false
+C041,Brittany Farmer,low,valid,2027-07-03,AE,false
+C042,Paula Moreno,medium,valid,2026-05-19,DE,true
+C043,George Group,low,valid,2025-10-10,RU,false
+C044,Timothy Koch,low,valid,2025-09-08,AU,false
+C045,Elizabeth Brown,low,valid,2026-05-05,IR,false
+C046,"Arroyo, Miller and Tucker",low,valid,2027-05-10,JP,false
+C047,Spence PLC,low,valid,2025-12-06,KP,false
+C048,Anderson Group,low,valid,2027-11-20,PL,false
+C049,Carmen Rose,low,valid,2027-04-10,AE,true
+C050,"Henderson, Lewis and Ryan",medium,valid,2026-03-25,IT,false

@@ -1,0 +1,184 @@
+{
+  "generator_version": "1.0.0",
+  "generated_at_utc": "2026-05-18T05:31:24.550948+00:00",
+  "seed": 42,
+  "total_transactions": 500,
+  "compliant": 177,
+  "non_compliant": 323,
+  "compliant_pct": 35.4,
+  "n_clients": 50,
+  "n_accounts": 99,
+  "n_counterparties": 100,
+  "n_sanctioned_counterparties": 10,
+  "high_risk_countries": [
+    "AF",
+    "MM",
+    "KP",
+    "IR",
+    "SY",
+    "VE"
+  ],
+  "fx_rates_to_usd": {
+    "USD": "1.00",
+    "EUR": "1.08",
+    "GBP": "1.27",
+    "KZT": "0.0022"
+  },
+  "scenario_distribution": [
+    {
+      "rule": "AML_THRESHOLD",
+      "total": 80,
+      "non_compliant": 40
+    },
+    {
+      "rule": "STRUCTURING",
+      "total": 60,
+      "non_compliant": 30
+    },
+    {
+      "rule": "SANCTIONS",
+      "total": 50,
+      "non_compliant": 30
+    },
+    {
+      "rule": "KYC_VALIDITY",
+      "total": 60,
+      "non_compliant": 30
+    },
+    {
+      "rule": "HIGH_RISK_JURISDICTION",
+      "total": 50,
+      "non_compliant": 25
+    },
+    {
+      "rule": "VELOCITY",
+      "total": 50,
+      "non_compliant": 25
+    },
+    {
+      "rule": "DORMANT_ACCOUNT_RULE",
+      "total": 40,
+      "non_compliant": 20
+    },
+    {
+      "rule": "ROUND_NUMBER_ANOMALY",
+      "total": 30,
+      "non_compliant": 15
+    },
+    {
+      "rule": "NORMAL",
+      "total": 80,
+      "non_compliant": 0
+    }
+  ],
+  "per_rule_counts": {
+    "AML_THRESHOLD": {
+      "total": 80,
+      "non_compliant": 40,
+      "compliant": 40
+    },
+    "STRUCTURING": {
+      "total": 60,
+      "non_compliant": 30,
+      "compliant": 30
+    },
+    "SANCTIONS": {
+      "total": 50,
+      "non_compliant": 30,
+      "compliant": 20
+    },
+    "KYC_VALIDITY": {
+      "total": 60,
+      "non_compliant": 30,
+      "compliant": 30
+    },
+    "HIGH_RISK_JURISDICTION": {
+      "total": 50,
+      "non_compliant": 25,
+      "compliant": 25
+    },
+    "VELOCITY": {
+      "total": 50,
+      "non_compliant": 25,
+      "compliant": 25
+    },
+    "DORMANT_ACCOUNT_RULE": {
+      "total": 40,
+      "non_compliant": 20,
+      "compliant": 20
+    },
+    "ROUND_NUMBER_ANOMALY": {
+      "total": 30,
+      "non_compliant": 15,
+      "compliant": 15
+    },
+    "NORMAL": {
+      "total": 80,
+      "non_compliant": 0,
+      "compliant": 80
+    }
+  },
+  "rule_definitions": {
+    "AML_THRESHOLD": {
+      "description": "Any single transaction at or above 10,000 USD-equivalent must be reported to the relevant financial-intelligence unit.",
+      "category": "AML",
+      "severity": "high"
+    },
+    "STRUCTURING": {
+      "description": "Three or more transactions in the 9,000-9,999 USD-equivalent band from the same client within a 5-day window suggest deliberate structuring to evade the AML reporting threshold.",
+      "category": "AML",
+      "severity": "high"
+    },
+    "SANCTIONS": {
+      "description": "Transactions whose counterparty appears on the sanctions list are prohibited regardless of amount or jurisdiction.",
+      "category": "Sanctions",
+      "severity": "high"
+    },
+    "KYC_VALIDITY": {
+      "description": "Every transaction requires the client to hold a currently-valid Know-Your-Customer record. A transaction violates this rule if the client's KYC is missing, marked expired, or has an expiry date earlier than the transaction date.",
+      "category": "KYC",
+      "severity": "high"
+    },
+    "HIGH_RISK_JURISDICTION": {
+      "description": "Transactions involving counterparties registered in high-risk jurisdictions require enhanced due diligence; absence of EDD marks the transaction non-compliant.",
+      "category": "AML",
+      "severity": "medium"
+    },
+    "VELOCITY": {
+      "description": "More than 10 transactions in any rolling 24-hour window for a medium-risk client (or more than 5 for a high-risk client) constitutes suspicious velocity.",
+      "category": "Behavioral",
+      "severity": "medium"
+    },
+    "DORMANT_ACCOUNT_RULE": {
+      "description": "An account that has been inactive for at least 180 days and then transacts at 5,000 USD-equivalent or above triggers a dormant-account-reactivation alert.",
+      "category": "Behavioral",
+      "severity": "medium"
+    },
+    "ROUND_NUMBER_ANOMALY": {
+      "description": "Clusters of round-amount transactions (multiples of 1,000 USD) for small-business clients indicate deliberate rounding intended to obscure activity patterns.",
+      "category": "Behavioral",
+      "severity": "low"
+    }
+  },
+  "cross_rule_labeling": {
+    "enabled": true,
+    "per_tx_rules": [
+      "AML_THRESHOLD",
+      "SANCTIONS",
+      "KYC_VALIDITY",
+      "HIGH_RISK_JURISDICTION",
+      "DORMANT_ACCOUNT_RULE"
+    ],
+    "pre_cross_compliant": 285,
+    "pre_cross_non_compliant": 215,
+    "label_flips_compliant_to_non": 108,
+    "additional_firings_by_rule": {
+      "AML_THRESHOLD": 68,
+      "SANCTIONS": 0,
+      "KYC_VALIDITY": 62,
+      "HIGH_RISK_JURISDICTION": 25,
+      "DORMANT_ACCOUNT_RULE": 220
+    },
+    "notes": "After scenario-driven generation, each transaction is evaluated against every PER_TX_RULE. If any rule fires that the scenario didn't already mark, the firing is added to the tx's rule_relations and is_compliant is flipped to false. This makes the dataset labels reflect real-world AML logic (any rule violation -> overall non-compliant), addressing finding F-002 in THESIS_FINDINGS.md."
+  }
+}
